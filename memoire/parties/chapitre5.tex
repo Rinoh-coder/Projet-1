@@ -1,0 +1,115 @@
+\chapter{Discussion, limites et perspectives}
+
+\section{Synthèse de la contribution}
+
+Ce projet a conduit à la conception et à l'évaluation d'une application web de reconnaissance de signes LSFB isolés. Le système reconnaît un vocabulaire contrôlé de douze gloses, produit un texte français associé à chaque glose et peut déclencher une synthèse vocale.
+
+La chaîne finale comprend l'extraction des landmarks de pose et des deux mains dans le navigateur, une normalisation par rapport au torse, un ensemble retenu de quinze GRU avec poignets relatifs, une API FastAPI, une règle de stabilisation sur fenêtres et une synthèse vocale. Le Random Forest complet est conservé comme référence de comparaison et solution de repli. La vocalisation utilise la Web Speech API ; elle constitue une couche de présentation distincte et ne doit pas être confondue avec la performance du modèle.
+
+Le modèle produit une classe de glose, puis une table contrôlée lui associe un texte français. Cette chaîne démontre une reconnaissance interactive de signes isolés. Elle ne démontre pas une traduction grammaticale de phrases LSFB.
+
+\section{Interprétation des résultats}
+
+Les premières expériences ont étudié l'effet des représentations et des familles de modèles dans une phase exploratoire. Les comparaisons \texttt{raw}, \texttt{wrist\_centered} et \texttt{wrist\_scaled} s'appuient sur les validations groupées et ne doivent pas être confondues avec la comparaison finale du test officiel.
+
+Dans le protocole mains seules plafonné, \texttt{wrist\_scaled} atteint un macro-F1 moyen de 0,6659 avec un écart-type de 0,0146. \texttt{wrist\_centered} atteint 0,6533 et la représentation brute 0,5322 dans le même protocole. Ces chiffres documentent un champion intermédiaire ; ils ne remplacent pas les résultats de la phase GRU complète sur les 5\,957 séquences du test officiel.
+
+La phase GRU initiale atteint une accuracy de test de 82,21\,%, un macro-F1 de 0,8130 et une balanced accuracy de 0,8099. La phase configuration GRU retenue ajoute les deux poignets relatifs au torse. Sa validation groupée atteint un macro-F1 moyen de 0,7326 avec un écart-type de 0,0309, tandis que son audit final atteint 82,31\,%, 0,8153 et 0,8129 pour les trois métriques principales. Les deux niveaux ne doivent pas être mélangés : 0,7326 est une moyenne de validation, alors que 0,8153 est le macro-F1 de test de l'ensemble configuration GRU retenue.
+
+Le Random Forest complet atteint 79,03\,%, 0,7839 et 0,7931 sur le même test officiel. La comparaison finale donne donc un avantage de 3,27 points d'accuracy et de 0,0314 de macro-F1 à la GRU retenue avec poignets relatifs dans le protocole étudié. Cette conclusion concerne des configurations complètes : représentation, architecture, volume de données et agrégation diffèrent. Elle ne constitue pas une ablation causale de l'architecture seule.
+
+\section{Stratégie de sélection et risque de sélection optimiste}
+
+La succession RF baseline, RF \texttt{wrist\_scaled}, GRU initiale et GRU retenue avec poignets relatifs suit une stratégie champion/challenger. Chaque candidat est d'abord comparé sur des validations groupées par signeur. Seuls les candidats gelés sont ensuite évalués sur le test officiel. Les critères comprennent le macro-F1, la balanced accuracy, le pire signeur, la latence, la taille de l'artefact et la capacité de déploiement.
+
+Cette organisation améliore la traçabilité, mais elle ne supprime pas un risque de sélection optimiste. Le même test officiel a été consulté successivement pour comparer plusieurs candidats, même si aucun hyperparamètre n'y a été ajusté. Une réplication future devra utiliser un nouveau test indépendant, jamais consulté pendant le projet, et rapporter un intervalle de confiance groupé par signeur.
+
+\section{Discussion spécifique de la GRU}
+
+La GRU est adaptée à une séquence parce que ses portes peuvent conserver ou actualiser une information au fil des frames. Dans configuration GRU retenue, cette capacité est associée à une normalisation géométrique et à un ensemble de quinze checkpoints. Le résultat supérieur au RF complet indique que la configuration temporelle est utile dans le périmètre étudié. Il ne permet pas d'attribuer le gain à la seule architecture, puisque la représentation et la stratégie d'agrégation diffèrent également.
+
+Le modèle actif a été validé dans l'API sur les mêmes 5\,957 séquences : l'accuracy est de 82,31\,%, le macro-F1 de 0,8153 et la balanced accuracy de 0,8129. La latence API médiane est de 59,57 millisecondes, avec un P95 de 86,79 millisecondes et un P99 de 109,41 millisecondes. Le test a également rejeté trois payloads invalides par le code HTTP 422.
+
+Ces valeurs ne sont pas des mesures de bout en bout. Elles excluent l'acquisition webcam, le temps MediaPipe, la sérialisation JSON, la stabilisation des trois fenêtres et la synthèse vocale. Le coût total de la chaîne n'a pas encore été mesuré sur un poste équipé d'une webcam réelle. Il est donc méthodologiquement incorrect d'affirmer un temps réel strict ; la formulation retenue est celle d'une interaction par fenêtres dont le classifieur API est inférieur à 100 millisecondes dans 95 pour cent des requêtes de test.
+
+\section{Analyse ciblée de la confusion NON--SOURD}
+
+La confusion NON vers SOURD diminue de 87 occurrences dans GRU initiale à 68 dans configuration GRU retenue. Le mouvement inverse SOURD vers NON atteint 21 occurrences dans configuration GRU retenue. L'erreur reste donc asymétrique et le rappel de NON est de 0,6861, contre 0,8925 pour SOURD. Dans le Random Forest complet, NON vers SOURD apparaît 95 fois selon les prédictions officielles ; la réduction observée est donc spécifique à la configuration GRU et n'est pas une propriété générale du corpus.
+
+La Figure~\ref{fig:revision-confusion-focus} isole les confusions des gloses NON, SOURD, REGARDER et DIRE. Elle confirme que l'erreur NON--SOURD doit être distinguée des confusions de localisation et de trajectoire avec d'autres classes. La Figure~\ref{fig:revision-pca-non-sourd} projette les trajectoires normalisées NON et SOURD par analyse en composantes principales. Le chevauchement visuel est compatible avec une difficulté géométrique, mais une projection bidimensionnelle ne permet pas d'établir une cause linguistique.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.90\textwidth]{figures/generated/revision_confusion_focus_non_sourd.png}
+\caption{Matrice de confusion ciblée de l'ensemble GRU retenu pour NON, SOURD, REGARDER et DIRE.}
+\label{fig:revision-confusion-focus}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/generated/revision_pca_non_sourd.png}
+\caption{Projection PCA de trajectoires pose--mains normalisées pour les séquences NON et SOURD du test officiel.}
+\label{fig:revision-pca-non-sourd}
+\end{figure}
+
+Une mesure complémentaire calcule la distance euclidienne moyenne entre les prototypes de trajectoires normalisées. La distance NON--SOURD vaut 0,1405 dans cette représentation. Elle n'est pas la plus faible du corpus : les paires SOURD--COMPRENDRE et REGARDER--NON sont plus proches selon ce critère. La mesure ne confirme donc pas l'hypothèse d'une proximité géométrique exceptionnelle de NON et SOURD ; elle indique seulement que les trajectoires globales ne suffisent pas à séparer parfaitement les classes.
+
+Plusieurs hypothèses restent plausibles. Les deux signes peuvent partager des configurations manuelles ou des localisations proches autour de la tête et de l'oreille. Les composantes non manuelles, comme le mouvement de tête ou l'expression faciale, ne sont pas représentées dans le protocole actuel. Le rééchantillonnage à 32 frames peut aussi atténuer une différence de vitesse ou de trajectoire. Ces hypothèses doivent être traitées comme des pistes, et non comme des causes démontrées.
+
+La stratégie prioritaire comporte cinq étapes. Il faut d'abord ajouter, dans une expérience séparée, des landmarks du visage et de la tête. Il faut ensuite tester une pondération ou un sur-échantillonnage ciblé de NON uniquement dans les folds d'entraînement. Un seuil de rejet spécifique à la paire NON--SOURD peut réduire les sorties trop incertaines. Des augmentations ciblées sur les séquences NON mal classées peuvent compléter cette analyse. Enfin, un échantillon des vidéos mal classées doit être revu manuellement par des personnes compétentes afin de distinguer une ambiguïté visuelle d'une erreur d'annotation ou de détection.
+
+\section{Variabilité entre signeurs}
+
+La Figure~\ref{fig:revision-violin-signer} présente la distribution du macro-F1 par signeur pour l'ensemble GRU retenu. La moyenne est de 0,6806 avec un écart-type de 0,1682. Cette dispersion montre que la performance varie encore fortement selon les personnes ; le pire signeur reste une limite importante pour une généralisation en dehors du corpus.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/generated/revision_violin_macro_f1_signer.png}
+\caption{Distribution du macro-F1 par signeur pour l'ensemble GRU retenu sur le test officiel.}
+\label{fig:revision-violin-signer}
+\end{figure}
+
+\section{Limites des données et de la représentation}
+
+LSFB-ISOL est adapté à la classification de signes isolés, mais ne fournit pas à lui seul l'ensemble des annotations nécessaires à la reconnaissance continue de phrases. Les séquences sont associées à une glose et à des métadonnées de localisation dans la vidéo source ; elles ne constituent pas un flux annoté contenant plusieurs signes successifs avec des transitions linguistiques détaillées. En outre, les fichiers vidéo et les annotations complètes du corpus ne sont pas accessibles dans l'environnement de développement utilisé pour ce projet. L'analyse repose donc sur les métadonnées, les landmarks et les partitions autorisées qui ont été rendus disponibles ; elle ne peut pas prétendre couvrir toutes les propriétés linguistiques du corpus original.
+
+Les landmarks dépendent de MediaPipe. Une main absente peut être remplacée par des zéros afin de conserver la forme de l'entrée, mais cette opération ne recrée pas l'information perdue. Une séquence numériquement valide peut donc rester sémantiquement pauvre. La position de la caméra, la lumière, le cadrage, la morphologie et la vitesse du signeur peuvent également modifier les observations.
+
+\setcounter{section}{8}
+\section{Perspectives de traduction continue LSM--malgache}
+
+Le passage du prototype actuel à une traduction continue doit faire l'objet d'une étude nouvelle, portée exclusivement sur le contexte malgache. Il ne s'agit pas de remplacer la langue cible actuelle par une autre étiquette, mais de construire un système fondé sur les usages, les signeurs et les besoins de la Langue des Signes Malgache (LSM), ainsi que sur les formes réelles du malgache. Le prototype actuel reconnaît des signes isolés dans un vocabulaire contrôlé ; il ne fournit donc pas encore une traduction de phrases en LSM vers le malgache.
+
+\subsection{Corpus continu LSM--malgache}
+
+La première étape sera de constituer un corpus LSM--malgache autorisé, représentatif et documenté. Il devra réunir des productions de plusieurs signeurs malgaches, des phrases isolées, des dialogues et des échanges spontanés enregistrés dans des situations variées. Chaque séquence devra être associée à une transcription en LSM sous forme de gloses ou d'unités signées, à une traduction malgache vérifiée et, lorsque cela est pertinent, à des informations sur le contexte, le registre et le locuteur.
+
+Les annotations devront également indiquer les bornes temporelles des signes, les pauses, les chevauchements, les changements de locuteur et les segments difficiles à interpréter. Une partie des données devra être annotée par plusieurs personnes compétentes en LSM et en malgache. L'accord entre annotateurs permettra de distinguer une erreur de transcription d'une variation linguistique réelle. Les partitions d'entraînement, de validation et de test devront être séparées par signeur et par session afin d'éviter de mesurer seulement la capacité du système à reconnaître les personnes déjà vues.
+
+La langue malgache ne doit pas être traitée comme une simple colonne de texte. Le corpus devra documenter les variantes d'orthographe, les formes grammaticales, les expressions idiomatiques et les choix de registre. La traduction de la LSM vers le malgache devra être relue par des locuteurs malgaches et par des personnes compétentes en LSM. Sans ces références, une suite de glosses ne peut pas être présentée comme une traduction.
+
+\subsection{Reconnaissance continue et modèle temporel}
+
+Le système futur devra d'abord détecter les unités signées dans un flux vidéo sans connaître leurs frontières à l'avance. Une architecture progressive pourra extraire les mains, la pose, le visage et la tête, puis représenter l'évolution de ces informations au fil du temps. Une GRU causale est adaptée à une décision en ligne qui ne consulte pas les frames futures. Un Transformer causal ou un modèle hybride pourra être comparé à cette baseline lorsque le corpus sera suffisamment grand. Une couche CTC pourra apprendre la séquence de signes avec des frontières non imposées, tandis qu'un modèle encodeur--décodeur pourra ensuite produire le texte malgache.
+
+Les choix de modèle devront être justifiés par des comparaisons contrôlées. Les expériences devront isoler l'apport des mains, de la pose, du visage et des informations de tête. Elles devront aussi mesurer la qualité des sorties, la mémoire, la latence et la stabilité des corrections. Les hypothèses formulées dans ce mémoire pourront servir de point de départ, mais elles devront être réévaluées sur des données LSM--malgache recueillies pour cette finalité.
+
+\subsection{Traduction vers le malgache et restitution}
+
+La reconnaissance et la traduction devront rester deux étapes évaluées séparément. Le premier module produira une séquence d'unités signées accompagnée de bornes et d'un niveau de confiance. Le second module apprendra la correspondance entre cette séquence et une phrase malgache naturelle. Une sortie incertaine devra pouvoir rester affichée comme hypothèse temporaire et ne devra pas être vocalisée automatiquement.
+
+L'application pourra ensuite proposer une lecture audio en malgache. La synthèse vocale devra être évaluée pour la prononciation, les variantes disponibles, la continuité et la possibilité de fonctionner localement. Le choix d'un moteur vocal devra aussi prendre en compte la confidentialité, l'accessibilité et les ressources réellement disponibles pour le malgache. Une phrase corrigée par l'utilisateur devra pouvoir remplacer une hypothèse avant la lecture.
+
+Cette future application pourrait soutenir une conversation entre personnes signantes et non signantes dans un contexte malgache, ou servir à l'apprentissage de la LSM. Ces usages nécessiteront des évaluations avec des utilisateurs concernés. La précision du classifieur isolé ne suffira pas à démontrer l'utilité d'une traduction en conversation.
+
+\subsection{Évaluation et feuille de route}
+
+L'évaluation devra distinguer quatre niveaux. La segmentation sera mesurée par la précision, le rappel et le $F_1$ des bornes temporelles. La reconnaissance sera évaluée par les erreurs sur les unités signées. La traduction sera évaluée par la distance entre la référence malgache et la phrase produite, complétée par une appréciation humaine de la fidélité et de la fluidité. Enfin, l'application sera évaluée par la latence de bout en bout, la compréhension de l'interface et la satisfaction des utilisateurs.
+
+La feuille de route comporte quatre étapes. Il faut d'abord établir le corpus continu LSM--malgache et son guide d'annotation. Il faut ensuite produire une baseline causale reproductible et conserver un test indépendant. La troisième étape consiste à comparer les architectures et les modalités d'entrée par ablation. La dernière étape consiste à tester un prototype avec des signeurs et des locuteurs malgaches dans des scénarios réalistes. Tant que ces données et ces évaluations ne sont pas disponibles, le système doit rester présenté comme un démonstrateur de reconnaissance isolée, et non comme un traducteur automatique LSM--malgache.
+
+\section{Conclusion du chapitre}
+
+L'ensemble GRU retenu est le meilleur modèle mesuré et le modèle actif de l'application dans le périmètre contrôlé. Le test API sur 5\,957 séquences reproduit les métriques hors ligne, mais ne remplace pas une mesure webcam complète. La confusion NON--SOURD, la variabilité entre signeurs et le risque de sélection optimiste restent les limites scientifiques principales.
+
+La suite du projet doit donc conserver le registre des modèles, utiliser un test indépendant et instrumenter la chaîne complète. Le passage à la traduction continue demandera en outre un corpus annoté de phrases, une modélisation linguistique et une évaluation avec les utilisateurs concernés.

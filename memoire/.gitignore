@@ -1,0 +1,17 @@
+attic/*
+main_francais.pdf
+*.aux
+*.log
+*.sync*
+*.bbl
+*.blg
+*.idx
+*.lof
+*.lot
+*.nlo
+*.out
+*.toc
+*.fdb_latexmk
+*.fls
+*.ilg
+*.ind

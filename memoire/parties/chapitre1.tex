@@ -1,0 +1,73 @@
+\chapter{Contexte, problématique et état de l'art}
+
+\section{Contexte général}
+
+Les langues des signes sont des langues naturelles produites dans un canal visuo-gestuel. Leur expression mobilise notamment les mains, les bras, la posture, l'orientation du corps et, selon les signes, les informations non manuelles du visage. Cette organisation rend leur traitement automatique intrinsèquement spatio-temporel : une configuration manuelle observée à un instant ne suffit pas toujours à distinguer deux signes dont la différence réside dans le mouvement ou dans la trajectoire.
+
+Dans la réalisation scientifique, le système est étudié comme un prototype de reconnaissance de gloses LSFB isolées, suivi d'une génération textuelle contrôlée et d'une synthèse vocale. Cette précision évite de confondre la démonstration logicielle avec un système de traduction ouverte.
+
+La Figure~\ref{fig:composantes-signe} situe les composantes observables d'un signe et le périmètre de la représentation retenue.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\textwidth]{figures/generated/composantes_signe.png}
+\caption{Composantes observables d'un signe et périmètre de la représentation étudiée.}
+\label{fig:composantes-signe}
+\end{figure}
+
+\section{Reconnaissance isolée et traduction}
+
+La reconnaissance isolée suppose qu'une séquence contient une unité signée ou une classe cible identifiable. La tâche peut être évaluée par une métrique de classification, car chaque séquence possède une étiquette attendue. La reconnaissance continue ajoute la détection des frontières entre signes et la gestion des transitions. La traduction ajoute ensuite une interprétation linguistique et une génération dans une autre langue.
+
+\section{Représentation par landmarks}
+
+Une image vidéo contient une grande quantité d'informations dont une partie n'est pas nécessaire à la baseline. Une représentation par landmarks décrit chaque frame par des coordonnées de points caractéristiques. MediaPipe fournit ici 33 points de pose et jusqu'à 21 points pour chacune des deux mains \cite{MediaPipePaper}. La baseline concatène les parties dans l'ordre \texttt{pose}, \texttt{left\_hand}, \texttt{right\_hand}. Une frame contient donc 75 points et 225 coordonnées.
+
+Cette représentation est compacte, interprétable et compatible avec des modèles légers. Elle présente toutefois plusieurs limites. La qualité des points dépend du détecteur. Une main occultée ou mal détectée peut produire des valeurs nulles ou interpolées. Les coordonnées brutes dépendent également du cadrage, de la distance à la caméra et de la morphologie du signeur.
+
+La Figure~\ref{fig:mediapipe-hand} rappelle l'ordre spatial des landmarks de main utilisé pour construire les coordonnées d'entrée.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.34\textwidth]{figures/mediapipe_hand_reference.png}
+\caption{Repérage des 21 landmarks d'une main dans MediaPipe. Deux mains donnent jusqu'à 42 points, soit 126 coordonnées tridimensionnelles par frame. Source : MediaPipe \cite{MediaPipePaper}.}
+\label{fig:mediapipe-hand}
+\end{figure}
+
+\section{Familles de modèles}
+
+Les modèles de reconnaissance ne traitent pas tous les données de la même manière. Certains travaillent sur des caractéristiques déjà calculées, tandis que d'autres apprennent directement les relations spatiales et temporelles présentes dans une séquence vidéo. Le tableau suivant propose un panorama des familles pertinentes pour la reconnaissance de signes et pour la science des données. Il sert à situer le projet au début du mémoire ; il ne signifie pas que toutes ces familles sont entraînées dans le cadre de ce travail.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Panorama des modèles pertinents pour la reconnaissance de signes.}
+\label{tab:comparaison-modeles}
+\begin{tabular}{p{3.0cm}p{6.35cm}p{6.35cm}}
+\hline
+Modèle & Avantages & Limites \\
+\hline
+Random Forest & Combine de nombreux arbres sur des caractéristiques calculées. Il est robuste, simple à entraîner et rapide à l'inférence. & Il ne modélise pas directement l'ordre des frames. Ses résultats dépendent donc fortement de la représentation et du fenêtrage choisis. \\
+SVM & Sépare les classes dans l'espace des caractéristiques. Il fonctionne bien avec peu de données et des variables nombreuses. & Le choix du noyau et des paramètres est sensible. La temporalité reste indirecte. \\
+LSTM & Utilise une mémoire contrôlée par des portes pour conserver des informations importantes sur une séquence longue. Il convient aux données où l'ordre des observations est essentiel. & Il est plus lourd qu'un modèle classique et son entraînement peut être plus lent. Il reste sensible à la qualité et à la longueur des séquences. \\
+GRU & Met à jour un état caché au fil des frames et exploite directement la dynamique temporelle du signe. & Elle demande davantage de réglages et de données. Les résultats peuvent varier selon les signeurs et les conditions d'entraînement. \\
+CNN 3D & Apprend des motifs spatiaux et temporels directement dans des volumes vidéo ou des séquences de frames. & Il demande généralement plus de données, de mémoire et de puissance de calcul qu'une représentation par landmarks. \\
+Transformer & Utilise un mécanisme d'attention pour relier des moments éloignés d'une séquence. Il peut modéliser des dépendances temporelles complexes. & Il est souvent coûteux à entraîner et dépend fortement de la quantité et de la diversité des données disponibles. \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Problématique et hypothèses}
+
+La problématique retenue est la suivante : dans quelle mesure une représentation spatio-temporelle de landmarks et une séparation stricte des signeurs permettent-elles de reconnaître douze gloses LSFB isolées avec un modèle léger, reproductible et intégrable dans une application web ?
+
+Trois hypothèses guident l'étude. Premièrement, une représentation spatio-temporelle qui combine les landmarks et des informations relatives sur les poignets peut mieux distinguer des signes dont la différence repose sur le mouvement. Deuxièmement, une évaluation séparant les signeurs permet d'estimer plus honnêtement la capacité du modèle à reconnaître des personnes non vues. Troisièmement, un modèle temporel associé à une règle de stabilisation peut fournir des prédictions suffisamment régulières pour être intégré dans une application web interactive, tout en conservant un protocole reproductible.
+
+\section{Positionnement de la contribution}
+
+La contribution est une chaîne reproductible reliant une webcam, une extraction de landmarks, une classification de douze classes, une sortie textuelle et une synthèse vocale. Elle comprend également une comparaison méthodologique entre représentations et modèles légers. Sa valeur scientifique repose sur la clarté du protocole et des limites, et non sur une revendication de traduction générale.
+
+
+\section{Conclusion du chapitre}
+
+Ce chapitre a posé le problème scientifique et les choix de modélisation. La question porte sur une reconnaissance de gloses LSFB isolées, reproductible et intégrable dans une application web. Les hypothèses relatives aux landmarks, à la séparation par signeur et à la différence entre évaluation hors ligne et fonctionnement continu structurent le protocole présenté au chapitre suivant.
