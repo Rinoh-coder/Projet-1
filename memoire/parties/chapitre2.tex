@@ -1,0 +1,152 @@
+\chapter{Données, méthodologie et protocole expérimental}
+
+\section{Données et sélection des classes}
+
+Le corpus de référence est LSFB-ISOL, ressource conçue pour l'étude de signes isolés dans la LSFB \cite{LSFBISOL}. Les divisions officielles d'entraînement et de test sont conservées. Dans les premières phases de comparaison, un plafond de 100 séquences d'entraînement et de 50 séquences de test est appliqué à chaque classe. Le vocabulaire comprend OUI, SOURD, AVOIR, QUOI, REGARDER, NON, DIFFERENT, DIRE, FINIR, BIEN, VOIR et COMPRENDRE. Ces classes disposent toutes d'au moins 347 instances d'entraînement et de 47 à 56 signeurs dans l'audit disponible. Les phases GRU utilisent ensuite les 7\,590 séquences d'entraînement autorisées par le protocole dédié et le test officiel de 5\,957 instances ; elles ne doivent donc pas être décrites comme des expériences plafonnées à 100 et 50 séquences. Les tirages aléatoires sont contrôlés par les graines 7, 19, 42, 73 et 101 selon la phase.
+
+Le choix des douze classes répond à un critère de faisabilité et d'équilibre. Chaque classe possède un support suffisant pour l'entraînement et le test, et les classes sont représentées par un nombre comparable de signeurs. Le vocabulaire combine des réponses courtes, des marqueurs de négation et d'interrogation, des actions, des verbes de perception et des évaluations. Il permet donc de couvrir plusieurs formes gestuelles tout en conservant un protocole maîtrisable. Ce choix ne constitue pas une hiérarchie de pertinence linguistique et ne permet pas de généraliser les résultats à l'ensemble de LSFB-ISOL.
+
+La Figure~\ref{fig:dataset-class-support} présente le support disponible pour les douze classes retenues avant l'application du plafond expérimental.
+
+Le Tableau~\ref{tab:protocole-principal} précise les paramètres des premières phases et distingue leurs plafonds des phases GRU complètes.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.90\textwidth]{figures/generated/dataset_class_support.png}
+\caption{Support des classes retenues et nombre de signeurs dans la partition d'entraînement complète.}
+\label{fig:dataset-class-support}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Paramètres des premières phases de comparaison.}
+\label{tab:protocole-principal}
+\begin{tabular}{p{4.2cm}p{9.2cm}}
+\hline
+Corpus & LSFB-ISOL \\
+Classes & 12 gloses isolées \\
+Entraînement & 100 séquences maximum par classe \\
+Test & 50 séquences maximum par classe \\
+Séparation & Signeurs de test non vus à l'entraînement \\
+Graines & 7, 19, 42, 73 et 101 \\
+Représentations & raw, wrist\_centered, wrist\_scaled \\
+Classifieur principal & Random Forest, 300 arbres \\
+Entrée du modèle de référence & 32 frames, 225 valeurs par frame (pose et deux mains) \\
+Entrée du modèle retenu & 32 frames, 126 valeurs par frame (deux mains) \\
+Métrique principale & Macro-F1 \\
+Segmentation & Quantile 0,75 ; ouverture 2 frames ; fermeture 4 frames ; marge 2 frames \\
+\hline
+\end{tabular}
+\end{table}
+
+Une graine est une valeur initiale fournie au générateur pseudo-aléatoire. Dans ce projet, elle détermine notamment quelles séquences sont retenues lorsque le plafond par classe est appliqué et contrôle l'aléa du modèle. Deux graines produisent donc deux échantillonnages ou deux entraînements distincts. Les résultats associés à plusieurs graines doivent être lus comme une mesure de la variabilité du protocole, et non comme plusieurs performances indépendantes d'un même modèle. La moyenne résume le comportement typique, tandis que l'écart-type indique sa sensibilité au tirage.
+
+La séparation par signeur est un principe central. Les signeurs du test ne doivent pas apparaître dans les exemples d'entraînement utilisés pour ajuster le modèle. Cette contrainte donne une estimation plus exigeante de la généralisation qu'un partage aléatoire de séquences provenant des mêmes personnes.
+
+La répartition globale du corpus audité est distincte des effectifs utilisés dans les phases comparées. Le corpus contient 68\,262 instances d'entraînement et 52\,477 instances de test. Les premières comparaisons utilisent au plus 1\,200 instances d'entraînement et 600 instances de test pour les douze classes, tandis que la phase GRU groupée utilise 7\,590 instances d'entraînement et 5\,957 instances du test officiel. Le chemin de transformation suit l'extraction des landmarks, le rééchantillonnage, la normalisation éventuelle et la mise en forme de l'entrée du classifieur.
+
+La Figure~\ref{fig:dataset-partition-counts} complète cette description par les effectifs des partitions auditées.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.86\textwidth]{figures/generated/dataset_partition_counts.png}
+\caption{Répartition des instances entre l'entraînement et le test.}
+\label{fig:dataset-partition-counts}
+\end{figure}
+
+\section{Extraction et organisation des landmarks}
+
+Chaque séquence est représentée par trois parties : \texttt{pose}, \texttt{left\_hand} et \texttt{right\_hand}. Les parties sont concaténées selon un ordre fixé par le contrat de prétraitement. Pour la baseline, la forme d'une séquence rééchantillonnée est \texttt{[32,225]}. Pour une représentation mains seules, la forme devient \texttt{[32,126]}, car 42 points de mains sont conservés avec trois coordonnées par point. L'extraction des landmarks s'appuie sur MediaPipe, tandis que les métriques et le classifieur sont implémentés avec l'écosystème scikit-learn \cite{MediaPipePaper,ScikitLearn}.
+
+Les valeurs non finies sont traitées pendant le rééchantillonnage. Lorsqu'au moins deux valeurs valides sont disponibles, une interpolation temporelle est utilisée. Lorsqu'aucune valeur exploitable n'est disponible pour une coordonnée, la valeur de repli est nulle. Cette règle doit être identique entre la préparation d'entraînement et l'inférence.
+
+\section{Rééchantillonnage temporel}
+
+Les séquences originales n'ont pas nécessairement la même durée. Les modèles comparés doivent néanmoins recevoir une entrée de dimension fixe. Chaque séquence est donc rééchantillonnée à 32 positions temporelles régulièrement espacées entre le début et la fin de la séquence ou de la fenêtre sélectionnée.
+
+Ce choix simplifie la comparaison entre Random Forest, SVM et modèles temporels. Il constitue aussi une hypothèse : la dynamique originale est comprimée ou étendue pour tenir dans une longueur commune. L'effet de cette transformation doit être distingué de l'effet du classifieur.
+
+\section{Fenêtrage et segmentation}
+
+Deux stratégies sont distinguées. La première rééchantillonne la séquence complète. La seconde sélectionne une fenêtre de 32 frames autour d'une activité détectée dans les mains. La sélection rétrospective du pic d'activité peut améliorer la classification hors ligne, mais elle utilise l'ensemble de la séquence.
+
+La segmentation causale estime un seuil à partir des données d'entraînement, détecte un début après plusieurs frames actives, puis recherche un retour au calme. Elle ne doit pas consulter les frames futures au moment de la décision. Cette distinction est nécessaire pour relier les résultats expérimentaux au comportement attendu d'une webcam.
+
+\section{Représentations comparées}
+
+La représentation brute conserve les coordonnées originales. La représentation \texttt{wrist\_centered} soustrait à chaque point la position du poignet de la même main. La représentation \texttt{wrist\_scaled} applique ensuite une mise à l'échelle par la distance entre le poignet et le point MCP du majeur. Cette distance est calculée séparément pour la main gauche et la main droite, avec un facteur de repli lorsque la distance est trop faible.
+
+L'étude des représentations suit une logique d'ablation. Une seule famille de transformation est modifiée à la fois, tandis que les classes, les splits, les graines, le nombre d'arbres et le fenêtrage restent identiques. Cette discipline permet d'attribuer plus prudemment les différences de performance.
+
+\section{Modèles et paramètres}
+
+Le Random Forest de référence comporte 300 arbres, utilise \texttt{class\_weight=balanced}, \texttt{max\_features=sqrt} et une graine contrôlée. Le SVM est utilisé comme référence classique dans les premières expériences. Une GRU a été testée avec des représentations normalisées afin d'étudier l'intérêt d'un modèle temporel.
+
+Le modèle n'est pas choisi uniquement selon l'accuracy. La comparaison prend aussi en compte le macro-F1, la balanced accuracy, la variabilité entre graines, la performance par signeur, la latence et la facilité de reproduction.
+
+\section{Protocole statistique de la phase GRU groupée}
+
+La phase GRU groupée constitue la phase d'amélioration dédiée à la GRU. Elle utilise les graines 7, 42 et 101, cinq folds et une validation croisée stratifiée groupée par signeur. Chaque fold conserve les signeurs comme unités de groupe afin qu'un même signeur ne contribue pas simultanément à l'apprentissage et à la validation. Les checkpoints sont conservés séparément par graine et par fold. La décision de ne pas remplacer automatiquement le modèle applicatif est prise avant la comparaison finale : une adoption exige un gain moyen supérieur à la dispersion, l'absence de dégradation du pire cas, une taille et une latence compatibles, ainsi qu'un artefact exportable et documenté.
+
+Le test officiel est utilisé après le gel du protocole et n'intervient pas dans le choix des hyperparamètres. La comparaison finale rapportée au chapitre 3 est effectuée sur les mêmes 5\,957 instances de test et 40 signeurs non vus pour le Random Forest actif et pour l'ensemble des quinze checkpoints GRU. Les statistiques de variation entre folds utilisent l'écart-type d'échantillon. Trois graines permettent de mesurer une partie de la variance d'entraînement, mais elles ne caractérisent pas la variance induite par le choix des signeurs. Cette limite est explicitée conformément aux recommandations de Bouthillier et al. \cite{Bouthillier2021}.
+
+La sélection suit une stratégie \emph{champion/challenger}. À chaque étape, le modèle actuellement retenu est le champion et la nouvelle configuration est le challenger. Les représentations \texttt{raw}, \texttt{wrist\_centered} et \texttt{wrist\_scaled}, ainsi que les familles RF, SVM et GRU, sont d'abord comparées dans une phase exploratoire sur les folds d'entraînement et de validation groupés par signeur. Le test officiel n'est pas utilisé pour régler les hyperparamètres de cette phase.
+
+Après le gel du protocole, les candidats retenus sont comparés sur le test officiel verrouillé. La décision tient compte du macro-F1, de la balanced accuracy, de la performance du pire signeur, de la latence et de la taille de l'artefact. Le Random Forest complet, la GRU initiale et la GRU retenue avec poignets relatifs constituent ainsi une succession documentée de challengers. Cette procédure améliore la traçabilité, mais la consultation successive d'un même test introduit un risque de sélection optimiste. Une réplication future devra utiliser un nouveau test indépendant, jamais consulté pendant le projet.
+
+Le macro-F1 est la mesure principale. Il est complété par l'accuracy, la balanced accuracy, le F1 agrégé par signeur, les valeurs minimale et maximale par signeur, la latence d'inférence et la taille sérialisée. Avec cinq observations seulement, aucun test de significativité entre graines n'est annoncé : la différence entre configurations est présentée comme une estimation descriptive et une taille d'effet. Une future réplication devra augmenter le nombre de partitions de signeurs et utiliser un bootstrap groupé par signeur.
+
+
+\section{Métriques et formules}
+
+L'accuracy mesure la proportion totale de prédictions correctes. Le macro-F1 calcule le F1 de chaque classe puis en fait la moyenne. Il donne un poids identique aux douze gloses. La balanced accuracy correspond à la moyenne des rappels par classe.
+
+Le macro-F1 est la métrique principale, car une bonne performance globale peut masquer l'échec sur certaines gloses. Les résultats sont complétés par l'accuracy et la balanced accuracy, qui sont rapportées séparément. Elles ne coïncident que lorsque les effectifs par classe et les rappels conduisent effectivement à la même valeur.
+
+Pour un ensemble de $n$ séquences, l'accuracy est définie par
+\[
+\mathrm{Accuracy}=\frac{1}{n}\sum_{i=1}^{n}\mathbf{1}(\hat y_i=y_i).
+\]
+Pour une classe $c$, la précision, le rappel et le score $F_1$ sont respectivement
+\[
+P_c=\frac{TP_c}{TP_c+FP_c},\qquad R_c=\frac{TP_c}{TP_c+FN_c},\qquad F_{1,c}=\frac{2P_cR_c}{P_c+R_c}.
+\]
+Le macro-F1 et la balanced accuracy, calculés sur les $C=12$ classes, sont
+\[
+\mathrm{Macro\text{-}F1}=\frac{1}{C}\sum_{c=1}^{C}F_{1,c},\qquad
+\mathrm{BalancedAccuracy}=\frac{1}{C}\sum_{c=1}^{C}R_c.
+\]
+Ces définitions expliquent pourquoi le macro-F1 et la balanced accuracy donnent le même poids aux classes, indépendamment de leur effectif.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Synthèse des principales configurations expérimentales.}
+\label{tab:synthese-experiences}
+\begin{tabular}{p{2.1cm}p{2.0cm}p{2.4cm}p{2.4cm}p{1.5cm}p{1.2cm}}
+\hline
+Expérience & Instances train/test & Représentation & Modèle & Graines & Folds \\
+\hline
+Baseline RF & 1\,200/600 & \texttt{raw} & RF 300 arbres & 5 & -- \\
+RF intermédiaire & 1\,200/600 & \texttt{wrist\_scaled} & RF 300 arbres & 5 & -- \\
+GRU initiale & 7\,590/5\,957 & pose--mains normalisées & GRU, 15 checkpoints & 3 & 5 \\
+configuration GRU retenue & 7\,590/5\,957 & pose--mains + poignets relatifs & GRU, 15 checkpoints & 3 & 5 \\
+Random Forest complet & 7\,590/5\,957 & \texttt{wrist\_scaled} séquence complète & RF 300 arbres & 42 & 5 \\
+\hline
+\end{tabular}
+\end{table}
+
+Le Tableau~\ref{tab:synthese-experiences} sépare les premières comparaisons plafonnées des expériences finales utilisant toutes les séquences autorisées. Les métriques de test des trois dernières lignes sont discutées ensemble au chapitre 3, après le gel des protocoles.
+
+Pour résumer la dispersion de $m$ résultats de validation, l'écart-type d'échantillon utilisé dans les tableaux est
+\[
+s=\sqrt{\frac{1}{m-1}\sum_{j=1}^{m}(z_j-\bar z)^2},
+\]
+où $z_j$ désigne le score de la répétition $j$ et $\bar z$ sa moyenne. Cette convention est distinguée d'un intervalle de confiance : l'écart-type décrit la dispersion observée, mais ne constitue pas à lui seul une preuve de significativité.
+
+Les temps d'inférence du classifieur, les temps de préparation et les temps d'aller-retour HTTP sont rapportés séparément dans le chapitre consacré à l'application web.
+
+
+\section{Conclusion du chapitre}
+
+Ce chapitre a défini les données, la méthodologie et le protocole expérimental. Le plafond d'échantillonnage, la séparation par signeur, le contrôle par graines, le rééchantillonnage, les métriques et la gestion de la confiance forment un cadre commun pour interpréter les résultats. Les choix de représentation et de modèle sont évalués au chapitre 3, puis intégrés dans l'application au chapitre 4.

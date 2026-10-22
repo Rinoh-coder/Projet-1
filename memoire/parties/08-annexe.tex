@@ -1,0 +1,205 @@
+\chapter{Codes Python et application}
+
+\section{Transformation des landmarks}
+\begin{verbatim}
+def to_gru_features(rows):
+    sequence = validate_array(rows, (32, 225)).reshape(32, 75, 3)
+    pose = sequence[:, :33, :]
+    normalized = sequence.copy()
+    for frame in range(sequence.shape[0]):
+        points = pose[frame]
+        center = (points[11] + points[12]) / 2.0
+        scale = np.linalg.norm(points[11] - points[12])
+        if not np.isfinite(center).all():
+            center = np.zeros(3, dtype=np.float32)
+        if not np.isfinite(scale) or scale < 1e-4:
+            scale = 1.0
+        normalized[frame] = (sequence[frame] - center) / scale
+    normalized = np.nan_to_num(normalized)
+    torso = normalized[:, [11, 12], :].mean(axis=1)
+    wrist_relative = normalized[:, [15, 16], :] - torso[:, None, :]
+    augmented = np.concatenate([normalized, wrist_relative], axis=1)
+    return augmented.reshape(1, 32, 231).astype(np.float32)
+\end{verbatim}
+
+\section{Architecture GRU retenue avec poignets relatifs}
+\begin{verbatim}
+class GRUWristTorsoClassifier(nn.Module):
+    def __init__(self, features=231, classes=12):
+        super().__init__()
+        self.proj = nn.Sequential(
+            nn.Linear(features, 128), nn.ReLU(), nn.Dropout(0.2)
+        )
+        self.gru = nn.GRU(
+            128, 64, batch_first=True, bidirectional=True
+        )
+        self.head = nn.Sequential(
+            nn.Linear(128, 64), nn.ReLU(), nn.Dropout(0.3),
+            nn.Linear(64, classes)
+        )
+
+    def forward(self, x):
+        sequence, _ = self.gru(self.proj(x))
+        return self.head(sequence.mean(dim=1))
+\end{verbatim}
+
+\section{Calcul du score de confiance}
+\begin{verbatim}
+logits = torch.stack([model(tensor)[0] for model in GRU_MODELS])
+per_model_probabilities = torch.softmax(logits, dim=1).numpy()
+raw_probabilities = per_model_probabilities.mean(axis=0)
+order = np.argsort(raw_probabilities)[::-1]
+label = GRU_LABELS[int(order[0])]
+raw_confidence = float(raw_probabilities[order[0]])
+margin = float(
+    raw_probabilities[order[0]] - raw_probabilities[order[1]]
+)
+votes = np.argmax(per_model_probabilities, axis=1)
+ensemble_agreement = float(np.mean(votes == int(order[0])))
+\end{verbatim}
+
+\section{Temperature scaling et rejet}
+\begin{verbatim}
+temperature = float(GRU_CALIBRATION.get("temperature", 1.0))
+calibrated_logits = np.log(
+    np.clip(raw_probabilities, 1e-12, 1.0)
+) / temperature
+calibrated_logits -= calibrated_logits.max()
+probabilities = np.exp(calibrated_logits)
+probabilities /= probabilities.sum()
+
+confidence = float(probabilities[order[0]])
+accepted = (
+    confidence >= confidence_threshold
+    and margin >= margin_threshold
+    and ensemble_agreement >= agreement_threshold
+)
+\end{verbatim}
+
+\section{Contrat de prédiction FastAPI}
+\begin{verbatim}
+@app.post("/predict-gru")
+def predict_gru(payload: Prediction):
+    try:
+        features = to_gru_features(payload.landmarks)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return gru_prediction_response(features)
+\end{verbatim}
+
+\section{Endpoints backend pertinents}
+\begin{verbatim}
+GET  /health
+GET  /model-info
+GET  /candidate-info
+POST /predict-gru       # route active, entrée [32,225]
+POST /predict           # baseline conservée, entrée [32,225]
+POST /predict-candidate # candidat mains seules, entrée [32,126]
+\end{verbatim}
+
+\section{Validation de la forme et des valeurs}
+\begin{verbatim}
+def validate_landmarks(landmarks):
+    array = np.asarray(landmarks, dtype=np.float32)
+    if array.shape != (32, 225):
+        raise ValueError("landmarks doit être de forme [32,225]")
+    if not np.isfinite(array).all():
+        raise ValueError("landmarks contient une valeur non finie")
+    return array
+\end{verbatim}
+
+\section{Segmentation causale JavaScript}
+\begin{verbatim}
+async function processCausalFrame(activityFrame, modelFrame) {
+  const active = causalActivity(activityFrame) >= CAUSAL.threshold;
+  causalPrevious = activityFrame;
+  frames.push(modelFrame);
+  if (causalState === 'IDLE') {
+    if (active) {
+      causalState = 'ARMING';
+      causalActiveRun = 1;
+      causalSegment = [modelFrame];
+    }
+    return null;
+  }
+  causalSegment.push(modelFrame);
+  if (active) {
+    causalState = 'ACTIVE';
+    causalQuietRun = 0;
+    return null;
+  }
+  causalState = 'RELEASING';
+  causalQuietRun += 1;
+  if (causalQuietRun < CAUSAL.endRun) return null;
+  return causalSegment.slice(
+    0, causalSegment.length - causalQuietRun + 3
+  );
+}
+\end{verbatim}
+
+\section{Appel de la route active}
+\begin{verbatim}
+async function predict(landmarks) {
+  const response = await fetch('/predict-gru', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({landmarks})
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || 'Erreur de prédiction');
+  }
+  return data;
+}
+\end{verbatim}
+
+\section{Contrôle de séparation par signeur}
+\begin{verbatim}
+shared_signers = sorted(
+    {row["signer"] for row in train}
+    & {row["signer"] for row in test}
+)
+if shared_signers:
+    raise RuntimeError(
+        f"split leak: shared signer ids={shared_signers}"
+    )
+\end{verbatim}
+
+\section{Apprentissage de la température}
+\begin{verbatim}
+fitted = minimize_scalar(
+    lambda log_temperature: nll(
+        probabilities, labels, np.exp(log_temperature)
+    ),
+    bounds=(np.log(0.05), np.log(20.0)),
+    method="bounded",
+)
+temperature = float(np.exp(fitted.x))
+\end{verbatim}
+
+\section{Génération du graphique F1 par classe}
+\begin{verbatim}
+comparison = json.loads(
+    (ROOT / "results/revision_analysis.json").read_text()
+)
+classes = ["OUI", "SOURD", "AVOIR", "QUOI", "REGARDER", "NON",
+           "DIFFERENT", "DIRE", "FINIR", "BIEN", "VOIR", "COMPRENDRE"]
+rf = [comparison["rf_gru_f1"][label]["rf"] for label in classes]
+gru = [comparison["rf_gru_f1"][label]["gru"] for label in classes]
+ax.bar(x - width / 2, rf, width, label="Random Forest complet")
+ax.bar(
+    x + width / 2, gru, width,
+    label="GRU retenue avec poignets relatifs"
+)
+\end{verbatim}
+
+\section{Tests du contrat API}
+\begin{verbatim}
+def test_gru_prediction_returns_ranked_result():
+    response = client.post("/predict-gru", json=valid_gru_payload())
+    assert response.status_code == 200
+    body = response.json()
+    assert "wrist-torso" in body["model_version"]
+    assert len(body["top3"]) == 3
+    assert 0.0 <= body["ensemble_agreement"] <= 1.0
+\end{verbatim}

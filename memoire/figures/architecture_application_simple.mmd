@@ -1,0 +1,13 @@
+flowchart LR
+    A[Webcam] --> B[Landmarks]
+    B --> C[Prétraitement]
+    C --> D[Ensemble GRU]
+    D --> E[Glose reconnue]
+    E --> F[Texte et audio]
+
+    classDef step fill:#f7f8fa,stroke:#667085,color:#1f2933,stroke-width:1px;
+    classDef model fill:#e8edf3,stroke:#526581,color:#1f2933,stroke-width:1px;
+    classDef output fill:#eef4ef,stroke:#668071,color:#1f2933,stroke-width:1px;
+    class A,B,C step;
+    class D model;
+    class E,F output;

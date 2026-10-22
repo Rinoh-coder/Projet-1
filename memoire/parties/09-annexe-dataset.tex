@@ -1,0 +1,59 @@
+\chapter{Corpus LSFB-ISOL}
+
+\section{Catalogue général du corpus}
+\begin{verbatim}
+{
+  "source": "LSFB-ISOL",
+  "instance_count": 13547,
+  "signer_count": 99,
+  "fields": ["id", "sign", "signer", "start", "end"],
+  "partitions": {
+    "train": 7590,
+    "test": 5957,
+    "shared_signers": 0
+  }
+}
+\end{verbatim}
+
+\section{Extrait brut d’instances LSFB-ISOL}
+\begin{verbatim}
+id,sign,signer,start,end
+CLSFBI0104A_S001_B_253439_253802,OUI,S001,253439,253802
+CLSFBI0103A_S002_B_165985_166679,NON,S002,165985,166679
+CLSFBI0103A_S001_B_367470_367816,SOURD,S001,367470,367816
+CLSFBI0104A_S001_B_479609_479848,QUOI,S001,479609,479848
+CLSFBI0104A_S002_B_476347_476533,AVOIR,S002,476347,476533
+CLSFBI0103A_S001_B_335087_335232,DIRE,S001,335087,335232
+CLSFBI0103A_S001_B_295863_296869,REGARDER,S001,295863,296869
+CLSFBI0103A_S002_B_189863_190520,COMPRENDRE,S002,189863,190520
+CLSFBI0103A_S001_B_466550_466747,FINIR,S001,466550,466747
+CLSFBI0111A_S001_B_220590_220803,BIEN,S001,220590,220803
+CLSFBI0103A_S002_B_139019_139281,VOIR,S002,139019,139281
+CLSFBI0103A_S001_B_286621_286862,DIFFERENT,S001,286621,286862
+\end{verbatim}
+
+\section{Structure d’une séquence de landmarks}
+\begin{verbatim}
+{
+  "landmark_order": [
+    "pose_0..pose_32",
+    "left_hand_0..left_hand_20",
+    "right_hand_0..right_hand_20"
+  ],
+  "coordinates": 3,
+  "frames": 32,
+  "values_per_frame": 225,
+  "classes": 12
+}
+\end{verbatim}
+
+\section{Séparation des signeurs}
+\begin{verbatim}
+{
+  "train_signers": 59,
+  "test_signers": 40,
+  "shared_signers": 0,
+  "duplicate_instance_ids": 0,
+  "duplicate_row_hash_count": 0
+}
+\end{verbatim}
