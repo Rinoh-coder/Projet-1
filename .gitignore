@@ -1,0 +1,26 @@
+# Données
+data/raw/
+data/processed/
+*.mp4
+*.npy
+*.npz
+
+# Modèles
+models/
+*.h5
+*.keras
+*.pt
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Système
+.DS_Store
+Thumbs.db
+
+# Colab
+*.ipynb_checkpoints
