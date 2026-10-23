@@ -1,0 +1,13 @@
+\begin{introduction}
+
+Les langues des signes utilisent des configurations manuelles, des mouvements et des informations corporelles pour transmettre du sens dans un espace visuel. Leur traitement automatique soulève des difficultés différentes de celles rencontrées dans la reconnaissance de parole ou dans l'analyse d'images statiques. La reconnaissance doit tenir compte de la dimension temporelle du geste, de la variation entre signeurs, des conditions de captation et de la visibilité des mains.
+
+Ce rapport porte exclusivement sur la langue des signes de Belgique francophone (LSFB). Le travail se concentre sur la reconnaissance de gloses isolées appartenant à un vocabulaire contrôlé. Une glose est utilisée ici comme une étiquette expérimentale associée à une unité signée ; elle ne représente pas à elle seule une traduction grammaticale d'une phrase.
+
+L'objectif est de concevoir une application web capable de recevoir une courte séquence vidéo, d'extraire des landmarks avec MediaPipe, de reconnaître une classe parmi douze gloses LSFB et de produire une sortie textuelle contrôlée. Une synthèse vocale est ajoutée comme couche de présentation. Le système produit une sortie textuelle contrôlée et une synthèse vocale optionnelle.
+
+La problématique retenue est la suivante : dans quelle mesure une représentation fondée sur les landmarks des mains et de la pose, associée à un modèle léger, permet-elle de reconnaître des gloses LSFB isolées avec une latence compatible avec une démonstration web ?
+
+Le rapport est organisé en cinq chapitres. Le premier présente le contexte et l'état de l'art. Le deuxième décrit les données, la méthodologie et le protocole expérimental. Le troisième présente l'évaluation des modèles et les résultats. Le quatrième décrit ensuite la conception et la réalisation de l'application web. Le cinquième discute les résultats, les limites et les perspectives avant la conclusion générale.
+
+\end{introduction}

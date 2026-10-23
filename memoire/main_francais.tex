@@ -1,0 +1,63 @@
+\documentclass[
+    a4paper,
+    oneside,
+    12pt,
+    projetTutore,
+    francais,
+    creativecommons,
+    hyperref
+]{memoESPA}
+
+\usepackage{float}
+\usepackage{geometry}
+\geometry{left=1.85cm,right=1.85cm,top=2.4cm,bottom=2.4cm}
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.12}
+
+\makenomenclature
+\makeindex
+\newcites{refs}{WEBOGRAPHIE}
+\input{couverture/1-titre}
+\input{couverture/2-encadreurs}
+\input{couverture/3-jurys}
+
+\begin{document}
+\pagenumbering{Roman}
+\maketitle
+\presentjury
+\input{parties/01-avantpropos}
+\input{parties/02-remerciements}
+\input{parties/03-resume}
+\tableofcontents
+\listoftables
+\listoffigures
+\input{parties/04-abbreviations}
+\input{parties/05-symboles}
+\cleardoublepage
+\pagenumbering{arabic}
+\input{parties/06-introduction}
+\input{parties/chapitre1}
+\input{parties/chapitre2}
+\input{parties/chapitre4}
+\input{parties/chapitre3}
+\input{parties/chapitre5}
+\input{parties/07-conclusion}
+\appendix
+\setcounter{chapter}{0}
+\input{parties/08-annexe}
+\input{parties/09-annexe-dataset}
+
+\newpage
+\begin{spacing}{1}
+  \bibliographystyle{plain}
+  \addcontentsline{toc}{chapter}{BIBLIOGRAPHIE}
+  \bibliography{biblio/bibliographie}
+\end{spacing}
+\newpage
+\begin{spacing}{1}
+  \nociterefs{*}
+  \bibliographystylerefs{alphaurl}
+  \addcontentsline{toc}{chapter}{WEBOGRAPHIE}
+  \bibliographyrefs{biblio/webographie}
+\end{spacing}
+\end{document}
