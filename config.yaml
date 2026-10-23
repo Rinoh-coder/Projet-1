@@ -1,0 +1,59 @@
+# Configuration du projet de traduction LSM
+
+seed: 42
+
+# Vocabulaire (12 signes LSM)
+signes:
+  - Miarahaba
+  - Eny
+  - Tsia
+  - Miezaka
+  - Maheno
+  - Marenina
+  - Mora
+  - Tanora
+  - Neny
+  - Dada
+  - Solosaina
+  - Maty
+
+# Capture
+capture:
+  nb_signes: 12
+  nb_repetitions_par_signeur: 10
+  nb_signeurs: 2
+  duree_secondes: 2
+  compte_a_rebours: 3
+  resolution_largeur: 640
+  resolution_hauteur: 480
+  fps: 30
+
+# Extraction MediaPipe
+extraction:
+  nb_frames_cible: 30
+  inclure_visage: false
+  nb_points_corps: 33
+  nb_points_main: 21
+  seuil_echec_detection: 0.20
+
+# Préparation
+preparation:
+  split_train: 0.70
+  split_val: 0.15
+  split_test: 0.15
+  stratifier: true
+
+# Modèle
+modele:
+  unites: 128
+  dropout: 0.4
+  nb_classes: 12
+
+# Entraînement
+entrainement:
+  optimiseur: "adam"
+  learning_rate: 0.001
+  batch_size: 16
+  epochs_max: 100
+  patience: 10
+  loss: "sparse_categorical_crossentropy"
