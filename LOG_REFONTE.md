@@ -135,3 +135,30 @@
 - L'étape frontend est validée fonctionnellement ; l'étape backend reste non
   validée scientifiquement pour cette vidéo. Le README global sera complété
   lors de la consolidation de l'architecture.
+
+### Ajustement du parcours de capture
+
+- L'interface est limitée à la caméra, au bouton Capturer, au compte à rebours
+  de préparation de deux secondes, au résultat texte et au lecteur audio.
+- Après le compte à rebours, une vidéo de deux secondes est enregistrée puis
+  envoyée à `/predire`. Le signe prédit est vocalisé dans le navigateur par le
+  modèle ONNX malgache ; aucun audio n'est envoyé au backend.
+- Vérification : `node --check frontend/app.js`, analyse HTML et `git diff
+  --check` réussis ; la page statique affiche la caméra et le bouton, avec le
+  résultat et le lecteur audio masqués jusqu'à la première prédiction.
+- Le `Failed to fetch` était causé par l'absence de serveur FastAPI actif :
+  l'interface utilisait une URL relative vers `/predire`, mais le backend
+  n'était pas lancé sur le port 8000. Un contrôle `/health` confirme désormais
+  avant la capture que le backend et le modèle TFLite sont prêts, avec une
+  indication explicite si l'interface est ouverte depuis un serveur statique.
+- La capture vise 60 images et ajuste sa durée à la fréquence réelle de la
+  caméra (environ deux secondes à 30 images/s). Le backend identifie maintenant
+  le conteneur WebM de `MediaRecorder` au lieu de le traiter comme un MP4.
+- Vérification : le venv du backend démarre FastAPI ; `/`, `/docs` et `/health`
+  répondent HTTP 200. L'API a traité une capture WebM de deux secondes à 30
+  images/s et renvoyé `Maty` (confiance 78,0 %). Le modèle audio ONNX a été
+  chargé dans le navigateur et a généré 23 296 échantillons à 16 kHz.
+- Le précédent essai sur
+  `data/raw/signeur4/Miarahaba/01.mp4` renvoie toujours `Solosaina` à 54,6 % :
+  l'infrastructure fonctionne, mais cette erreur de classification du modèle
+  reste à résoudre séparément.
