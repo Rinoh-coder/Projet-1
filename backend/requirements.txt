@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+mediapipe==0.10.14
+ai-edge-litert
+numpy<2
+opencv-python-headless==4.11.0.86
+opencv-contrib-python==4.11.0.86
+jax==0.4.38
+jaxlib==0.4.38
+python-multipart

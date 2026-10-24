@@ -1,210 +1,151 @@
-import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2";
+const CAPTURE_DURATION_MS = 2000;
+const camera = document.querySelector("#camera");
+const captureButton = document.querySelector("#capture-button");
+const status = document.querySelector("#status");
+const result = document.querySelector("#result");
+const recordingIndicator = document.querySelector("#recording-indicator");
 
-const MODEL_ID = "elloza/mms-tts-mlg-onnx";
-const videoInput = document.querySelector("#video-input");
-const fileName = document.querySelector("#file-name");
-const videoPreview = document.querySelector("#video-preview");
-const translateButton = document.querySelector("#translate-button");
-const statusBar = document.querySelector(".status-bar");
-const statusMessage = document.querySelector("#status-message");
-const emptyResult = document.querySelector("#empty-result");
-const translationResult = document.querySelector("#translation-result");
-const recognizedSign = document.querySelector("#recognized-sign");
-const confidence = document.querySelector("#confidence");
-const audioPlayer = document.querySelector("#audio-player");
-const audioState = document.querySelector("#audio-state");
-const audioMessage = document.querySelector("#audio-message");
+let cameraStream = null;
+let busy = false;
 
-env.allowLocalModels = false;
-env.backends.onnx.wasm.numThreads = 1;
-
-let selectedVideo = null;
-let previewUrl = null;
-let audioUrl = null;
-let synthesizerPromise = null;
-
-function setStatus(message, state = "idle") {
-  statusMessage.textContent = message;
-  statusBar.dataset.state = state;
+function setStatus(message, state = "") {
+  status.textContent = message;
+  status.dataset.state = state;
 }
 
-function setAudioState(state, message) {
-  audioState.textContent = state;
-  audioState.dataset.state = state === "Prêt" ? "ready" : state === "Erreur" ? "error" : "loading";
-  audioMessage.textContent = message;
-}
-
-function getSynthesizer() {
-  if (!synthesizerPromise) {
-    synthesizerPromise = pipeline("text-to-speech", MODEL_ID, {
-      quantized: true,
-    }).catch((error) => {
-      synthesizerPromise = null;
-      throw error;
-    });
-  }
-  return synthesizerPromise;
-}
-
-function toWavBlob(audio, sampleRate) {
-  if (!(audio instanceof Float32Array) || audio.length === 0) {
-    throw new Error("Le modèle audio n’a pas produit de signal exploitable.");
-  }
-  if (!Number.isFinite(sampleRate) || sampleRate <= 0) {
-    throw new Error("La fréquence d’échantillonnage audio est invalide.");
-  }
-
-  const bytesPerSample = 2;
-  const dataLength = audio.length * bytesPerSample;
-  const buffer = new ArrayBuffer(44 + dataLength);
-  const view = new DataView(buffer);
-
-  function writeText(offset, text) {
-    for (let index = 0; index < text.length; index += 1) {
-      view.setUint8(offset + index, text.charCodeAt(index));
-    }
-  }
-
-  writeText(0, "RIFF");
-  view.setUint32(4, 36 + dataLength, true);
-  writeText(8, "WAVE");
-  writeText(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * bytesPerSample, true);
-  view.setUint16(32, bytesPerSample, true);
-  view.setUint16(34, 16, true);
-  writeText(36, "data");
-  view.setUint32(40, dataLength, true);
-
-  for (let index = 0; index < audio.length; index += 1) {
-    const sample = Math.max(-1, Math.min(1, audio[index]));
-    const pcm = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
-    view.setInt16(44 + index * bytesPerSample, pcm, true);
-  }
-
-  return new Blob([buffer], { type: "audio/wav" });
-}
-
-async function generateSpeech(text) {
-  setAudioState("Chargement", "Préparation du modèle audio dans le navigateur…");
-  const tts = await getSynthesizer();
-
-  setAudioState("Génération", "Synthèse de la prononciation en cours…");
-  const output = await tts(text);
-  const blob = toWavBlob(output.audio, output.sampling_rate);
-
-  if (audioUrl) {
-    URL.revokeObjectURL(audioUrl);
-  }
-  audioUrl = URL.createObjectURL(blob);
-  audioPlayer.src = audioUrl;
-  audioPlayer.hidden = false;
-  setAudioState("Prêt", "Audio généré localement. Appuyez sur lecture pour l’écouter.");
-}
-
-function displayPrediction(result) {
-  if (
-    !result ||
-    typeof result.signe !== "string" ||
-    !Number.isFinite(result.confiance) ||
-    result.confiance < 0 ||
-    result.confiance > 1
-  ) {
-    throw new Error("La réponse du serveur ne contient pas une prédiction valide.");
-  }
-
-  emptyResult.hidden = true;
-  translationResult.hidden = false;
-  recognizedSign.textContent = result.signe;
-  confidence.textContent = `Confiance du modèle : ${(result.confiance * 100).toFixed(1)} %`;
-}
-
-videoInput.addEventListener("change", () => {
-  selectedVideo = videoInput.files?.[0] ?? null;
-  translateButton.disabled = !selectedVideo;
-  fileName.textContent = selectedVideo
-    ? `${selectedVideo.name} · ${(selectedVideo.size / (1024 * 1024)).toFixed(1)} Mo`
-    : "Aucun fichier sélectionné";
-
-  if (previewUrl) {
-    URL.revokeObjectURL(previewUrl);
-    previewUrl = null;
-  }
-  if (selectedVideo) {
-    previewUrl = URL.createObjectURL(selectedVideo);
-    videoPreview.src = previewUrl;
-    videoPreview.hidden = false;
-  } else {
-    videoPreview.removeAttribute("src");
-    videoPreview.hidden = true;
-  }
-
-  setStatus(
-    selectedVideo ? "Vidéo prête. Lancez la traduction." : "En attente d’une vidéo.",
-  );
-});
-
-translateButton.addEventListener("click", async () => {
-  if (!selectedVideo) {
-    setStatus("Choisissez d’abord une vidéo.", "error");
+async function openCamera() {
+  if (cameraStream?.active) {
     return;
   }
 
-  translateButton.disabled = true;
-  setStatus("Analyse de la vidéo en cours…", "processing");
-  audioPlayer.pause();
-  audioPlayer.removeAttribute("src");
-  audioPlayer.hidden = true;
-  setAudioState("En attente", "L’audio sera généré après la traduction.");
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("Caméra indisponible dans ce navigateur.");
+  }
+
+  cameraStream = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: {
+      facingMode: "user",
+      width: { ideal: 640 },
+      height: { ideal: 480 },
+      frameRate: { ideal: 30, max: 30 },
+    },
+  });
+  camera.srcObject = cameraStream;
+  await camera.play();
+}
+
+function recordClip() {
+  return new Promise((resolve, reject) => {
+    const mimeType = ["video/webm;codecs=vp8", "video/webm"].find((type) =>
+      MediaRecorder.isTypeSupported(type),
+    );
+    if (!mimeType) {
+      reject(new Error("Enregistrement vidéo indisponible dans ce navigateur."));
+      return;
+    }
+
+    const chunks = [];
+    let recorder;
+    try {
+      recorder = new MediaRecorder(cameraStream, { mimeType });
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    recorder.addEventListener("dataavailable", (event) => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    });
+    recorder.addEventListener("error", () => {
+      reject(new Error("La capture vidéo a échoué."));
+    });
+    recorder.addEventListener(
+      "stop",
+      () => {
+        const clip = new Blob(chunks, { type: recorder.mimeType });
+        if (clip.size === 0) {
+          reject(new Error("La capture vidéo est vide."));
+          return;
+        }
+        resolve(clip);
+      },
+      { once: true },
+    );
+
+    recorder.start();
+    recordingIndicator.dataset.active = "true";
+    setStatus("Capture…", "busy");
+    window.setTimeout(() => {
+      if (recorder.state === "recording") {
+        recorder.stop();
+      }
+      recordingIndicator.dataset.active = "false";
+    }, CAPTURE_DURATION_MS);
+  });
+}
+
+async function translateClip(clip) {
+  const formData = new FormData();
+  formData.append("file", clip, "capture.webm");
+
+  const response = await fetch("/predire", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let message = "La traduction a échoué.";
+    try {
+      const body = await response.json();
+      if (typeof body.detail === "string") {
+        message = body.detail;
+      }
+    } catch {
+      message = `Erreur serveur (${response.status}).`;
+    }
+    throw new Error(message);
+  }
+
+  const prediction = await response.json();
+  if (
+    typeof prediction.signe !== "string" ||
+    !Number.isFinite(prediction.confiance)
+  ) {
+    throw new Error("Réponse de traduction invalide.");
+  }
+  return prediction;
+}
+
+captureButton.addEventListener("click", async () => {
+  if (busy) {
+    return;
+  }
+
+  busy = true;
+  captureButton.disabled = true;
+  result.value = "";
+  setStatus("");
 
   try {
-    const formData = new FormData();
-    formData.append("file", selectedVideo);
-    const response = await fetch("/predire", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      let detail = `Erreur serveur (${response.status}).`;
-      try {
-        const errorBody = await response.json();
-        if (typeof errorBody.detail === "string") {
-          detail = errorBody.detail;
-        }
-      } catch {
-        // Conserver le message HTTP lorsqu'aucun détail JSON n'est renvoyé.
-      }
-      throw new Error(detail);
-    }
-
-    const result = await response.json();
-    displayPrediction(result);
-
-    try {
-      await generateSpeech(result.signe);
-      setStatus("Traduction terminée. Vous pouvez écouter le résultat.", "success");
-    } catch (error) {
-      console.error("Échec de la synthèse audio :", error);
-      setAudioState("Erreur", "La traduction est disponible, mais l’audio n’a pas pu être généré.");
-      setStatus("Signe reconnu ; synthèse audio indisponible.", "error");
-    }
+    await openCamera();
+    const clip = await recordClip();
+    setStatus("Traduction…", "busy");
+    const prediction = await translateClip(clip);
+    result.value = prediction.signe;
+    setStatus("");
   } catch (error) {
-    console.error("Échec de la traduction :", error);
-    setStatus(error instanceof Error ? error.message : "La traduction a échoué.", "error");
+    console.error("Échec de la capture ou de la traduction :", error);
+    setStatus(error instanceof Error ? error.message : "Une erreur est survenue.", "error");
   } finally {
-    translateButton.disabled = !selectedVideo;
+    busy = false;
+    captureButton.disabled = false;
+    captureButton.textContent = "Capturer";
   }
 });
 
 window.addEventListener("beforeunload", () => {
-  if (previewUrl) {
-    URL.revokeObjectURL(previewUrl);
-  }
-  if (audioUrl) {
-    URL.revokeObjectURL(audioUrl);
-  }
+  cameraStream?.getTracks().forEach((track) => track.stop());
 });

@@ -3,100 +3,21 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta
-      name="description"
-      content="Traduire un signe isolé de la Langue des Signes Malgache en texte et en audio."
-    >
+    <meta name="theme-color" content="#f4f4f4">
     <title>Traducteur LSM</title>
     <link rel="stylesheet" href="/style.css">
     <script type="module" src="/app.js"></script>
   </head>
   <body>
-    <main class="app-shell">
-      <header class="page-header">
-        <p class="eyebrow">Langue des Signes Malgache</p>
-        <h1>Traducteur LSM</h1>
-        <p class="intro">
-          Chargez une courte vidéo d’un signe isolé pour obtenir sa traduction
-          et écouter sa prononciation en malgache.
-        </p>
-      </header>
-
-      <section class="status-bar" aria-live="polite" aria-atomic="true">
-        <span id="status-indicator" class="status-indicator" aria-hidden="true"></span>
-        <p id="status-message">En attente d’une vidéo.</p>
-      </section>
-
-      <div class="workspace">
-        <section class="card input-card" aria-labelledby="input-heading">
-          <div class="card-heading">
-            <span class="step-number" aria-hidden="true">01</span>
-            <div>
-              <h2 id="input-heading">Votre vidéo</h2>
-              <p>Un signe, cadré de la tête aux mains.</p>
-            </div>
-          </div>
-
-          <label class="upload-area" for="video-input">
-            <span class="upload-title">Choisir une vidéo</span>
-            <span class="upload-hint">Format MP4 recommandé</span>
-            <input
-              id="video-input"
-              type="file"
-              accept="video/*,.mp4,.mov,.avi,.webm"
-              aria-describedby="file-name"
-            >
-          </label>
-          <p id="file-name" class="file-name">Aucun fichier sélectionné</p>
-
-          <video id="video-preview" class="video-preview" controls hidden></video>
-
-          <button id="translate-button" class="primary-button" type="button" disabled>
-            Traduire le signe
-          </button>
-          <p class="privacy-note">
-            La vidéo est envoyée au serveur pour la reconnaissance. La synthèse
-            audio est calculée dans votre navigateur.
-          </p>
-        </section>
-
-        <section class="card result-card" aria-labelledby="result-heading">
-          <div class="card-heading">
-            <span class="step-number" aria-hidden="true">02</span>
-            <div>
-              <h2 id="result-heading">Résultat</h2>
-              <p>La traduction et sa prononciation.</p>
-            </div>
-          </div>
-
-          <div id="empty-result" class="empty-result">
-            <span class="result-mark" aria-hidden="true">LSM</span>
-            <p>Votre traduction apparaîtra ici.</p>
-          </div>
-
-          <div id="translation-result" class="translation-result" hidden>
-            <p class="result-label">Signe reconnu</p>
-            <p id="recognized-sign" class="recognized-sign" aria-live="polite"></p>
-            <p id="confidence" class="confidence"></p>
-
-            <div class="audio-section">
-              <div class="audio-heading">
-                <h3>Prononciation malgache</h3>
-                <span id="audio-state" class="audio-state">En attente</span>
-              </div>
-              <audio id="audio-player" controls preload="none" hidden></audio>
-              <p id="audio-message" class="audio-message">
-                L’audio sera généré après la traduction.
-              </p>
-            </div>
-          </div>
-        </section>
+    <main class="translator">
+      <h1>Traducteur LSM</h1>
+      <div class="camera-frame">
+        <video id="camera" autoplay muted playsinline aria-label="Aperçu caméra"></video>
+        <span id="recording-indicator" class="recording-indicator" aria-hidden="true"></span>
       </div>
-
-      <footer class="page-footer">
-        <span>Prototype de reconnaissance de signes isolés</span>
-        <span>Modèle GRU · 10 signes</span>
-      </footer>
+      <button id="capture-button" type="button">Capturer</button>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <input id="result" class="result" type="text" placeholder="Résultat" aria-label="Résultat" readonly>
     </main>
   </body>
 </html>

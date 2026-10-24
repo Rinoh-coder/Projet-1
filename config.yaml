@@ -2,7 +2,7 @@
 
 seed: 42
 
-# Vocabulaire (12 signes LSM)
+# Vocabulaire (10 signes LSM)
 signes:
   - Miarahaba
   - Eny
@@ -12,14 +12,12 @@ signes:
   - Marenina
   - Mora
   - Tanora
-  - Neny
-  - Dada
   - Solosaina
   - Maty
 
 # Capture
 capture:
-  nb_signes: 12
+  nb_signes: 10
   nb_repetitions_par_signeur: 10
   nb_signeurs: 2
   duree_secondes: 2
@@ -47,7 +45,7 @@ preparation:
 modele:
   unites: 128
   dropout: 0.4
-  nb_classes: 12
+  nb_classes: 10
 
 # Entraînement
 entrainement:

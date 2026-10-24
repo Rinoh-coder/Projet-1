@@ -7,6 +7,8 @@ data/processed/
 
 # Modèles
 models/
+!backend/models/
+!backend/models/model_gru.tflite
 *.h5
 *.keras
 *.pt
