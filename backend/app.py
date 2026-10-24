@@ -21,6 +21,11 @@ def predire_endpoint(file: UploadFile = File(...)):
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
+@app.get("/health")
+def health_endpoint():
+    return {"status": "ok", "modele": "model_gru.tflite"}
+
+
 app.mount(
     "/",
     StaticFiles(directory=str(FRONTEND_DIR), html=True, check_dir=False),

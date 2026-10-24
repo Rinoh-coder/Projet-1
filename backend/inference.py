@@ -139,7 +139,8 @@ def predire(video_bytes: bytes) -> dict:
     if not video_bytes:
         raise InvalidVideoError("Le fichier video est vide.")
 
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as video_file:
+    suffix = ".webm" if video_bytes.startswith(b"\x1a\x45\xdf\xa3") else ".mp4"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as video_file:
         video_file.write(video_bytes)
         chemin_video = Path(video_file.name)
 

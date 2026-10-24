@@ -56,20 +56,21 @@ h1 {
   transform: scaleX(-1);
 }
 
-.recording-indicator {
+.countdown {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  width: 10px;
-  height: 10px;
-  border: 2px solid rgb(255 255 255 / 85%);
-  border-radius: 50%;
-  background: #7b838b;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(21 25 29 / 38%);
+  color: #ffffff;
+  font-size: 4rem;
+  font-weight: 700;
 }
 
-.recording-indicator[data-active="true"] {
-  background: #d83c3c;
-  box-shadow: 0 0 0 4px rgb(216 60 60 / 20%);
+#countdown[hidden],
+.result[hidden],
+.audio-result[hidden] {
+  display: none;
 }
 
 #capture-button {
@@ -107,9 +108,10 @@ h1 {
 }
 
 .result {
+  display: block;
   width: 100%;
-  height: 42px;
-  padding: 0 12px;
+  min-height: 42px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: #fafbfc;
@@ -118,11 +120,14 @@ h1 {
   font-size: 1rem;
   font-weight: 600;
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
-.result::placeholder {
-  color: #89919a;
-  font-weight: 400;
+.audio-result {
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin-top: 10px;
 }
 
 :focus-visible {

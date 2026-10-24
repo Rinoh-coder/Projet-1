@@ -13,11 +13,12 @@
       <h1>Traducteur LSM</h1>
       <div class="camera-frame">
         <video id="camera" autoplay muted playsinline aria-label="Aperçu caméra"></video>
-        <span id="recording-indicator" class="recording-indicator" aria-hidden="true"></span>
+        <span id="countdown" class="countdown" aria-live="assertive" hidden></span>
       </div>
       <button id="capture-button" type="button">Capturer</button>
       <p id="status" class="status" role="status" aria-live="polite"></p>
-      <input id="result" class="result" type="text" placeholder="Résultat" aria-label="Résultat" readonly>
+      <output id="result" class="result" aria-label="Résultat" hidden></output>
+      <audio id="audio-result" class="audio-result" controls aria-label="Prononciation du résultat" hidden></audio>
     </main>
   </body>
 </html>
