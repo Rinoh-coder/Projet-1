@@ -44,7 +44,7 @@ Le projet repose sur plusieurs choix techniques destinés à concilier précisio
 Composant & Alternative considérée & Avantage de l'option retenue & Limite principale \\
 \hline
 FastAPI & Gradio & API légère, contrôle du flux HTTP, serveur minimal et reproductible & Interface moins intégrée qu'un environnement de prototypage \\
-TFLite & TensorFlow complet & Artefact mesuré à 245,5 Kio, soit une réduction de 85,0 \% par rapport au modèle source & Exige une conversion explicite et une vérification de compatibilité \\
+TFLite & TensorFlow complet & Artefact mesuré à 247 Ko, soit une réduction de taille par rapport au modèle source & Exige une conversion explicite et une vérification de compatibilité \\
 Transformers.js & Serveur TTS Python & Audio généré côté navigateur, sans dépendance audio Python ni paquet PyTorch & Premier chargement du modèle et connexion Internet nécessaires \\
 \hline
 \end{tabular}
@@ -52,7 +52,7 @@ Transformers.js & Serveur TTS Python & Audio généré côté navigateur, sans d
 
 Le choix de FastAPI, plutôt que Gradio, répond au besoin de séparer l'interface de la logique d'inférence. FastAPI expose l'endpoint POST \texttt{/predire} et sert les fichiers statiques de la page web \citerefs{FastAPIDocs}. Cette séparation facilite le contrôle du contrat HTTP et limite les responsabilités du backend.
 
-Le modèle de référence GRU pose+mains, retenu à l'issue de la campagne expérimentale du chapitre 3 (30 frames, 128 unités, 137\,610 paramètres, 92,0 \% d'exactitude sur le signeur réservé au test), a été converti au format TFLite afin de réduire la taille de l'artefact d'inférence, au moyen du convertisseur documenté par TensorFlow \citerefs{TFLiteConverterDocs}. Le fichier TFLite mesure 251\,344 octets (245,5 Kio), contre 1\,677\,751 octets (environ 1,60 Mio) pour le modèle Keras, soit une réduction de taille de 85,0 \%. L'application exécute donc à l'inférence la conversion du même modèle que celui évalué dans la campagne, ce qui préserve la cohérence entre les résultats rapportés et le comportement du prototype. Le backend exécute l'artefact TFLite avec LiteRT \citerefs{LiteRTDocs}.
+Le modèle de référence GRU pose+mains (30 frames, 128 unités, 137\,610 paramètres, 92,0 \% d'exactitude sur le signeur réservé au test), retenu à l'issue de la campagne expérimentale du chapitre 3, a été réentraîné avec \texttt{unroll=True} pour satisfaire la contrainte de conversion TFLite, puis converti au moyen du convertisseur documenté par TensorFlow \citerefs{TFLiteConverterDocs}. Le modèle final atteint 94,0 \% et son artefact TFLite mesure 247 Ko, nettement moins que le modèle Keras source (1\,677\,751 octets, soit environ 1,60 Mio). L'application exécute à l'inférence ce modèle final, ce qui préserve la cohérence entre les résultats rapportés et le comportement du prototype. Le backend exécute l'artefact TFLite avec LiteRT \citerefs{LiteRTDocs}.
 
 Le choix de Transformers.js pour la synthèse vocale vise également à limiter les dépendances du backend. Le modèle chargé dans le navigateur nécessite une connexion Internet lors du premier chargement, mais évite le traitement audio côté serveur.
 
