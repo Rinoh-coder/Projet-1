@@ -32,8 +32,8 @@
 - Sur les 100 exemples de `X_test.npy` : accuracy Keras 90 %, accuracy TFLite
   90 %, accord des classes entre les deux modèles 100 %, erreur absolue maximale
   entre les sorties 0,010011.
-- L'étape 1 est validée. La taille du fichier modèle source (1,7 Mo) a été
-  réduite de 85,5 % pour l'artefact TFLite.
+- L'étape 1 est validée. Le fichier source de 1 677 751 octets a été réduit
+  à 251 344 octets (réduction de taille de 85,0 %) pour l'artefact TFLite.
 
 ## Étape 2 — Backend FastAPI avec TFLite
 
@@ -139,7 +139,7 @@
 ### Ajustement du parcours de capture
 
 - L'interface est limitée à la caméra, au bouton Capturer, au compte à rebours
-  de préparation de deux secondes, au résultat texte et au lecteur audio.
+  de préparation, au résultat texte et au lecteur audio.
 - Après le compte à rebours, une vidéo de deux secondes est enregistrée puis
   envoyée à `/predire`. Le signe prédit est vocalisé dans le navigateur par le
   modèle ONNX malgache ; aucun audio n'est envoyé au backend.
@@ -162,3 +162,5 @@
   `data/raw/signeur4/Miarahaba/01.mp4` renvoie toujours `Solosaina` à 54,6 % :
   l'infrastructure fonctionne, mais cette erreur de classification du modèle
   reste à résoudre séparément.
+- À la demande de l'utilisateur, le compte à rebours avant l'enregistrement est
+  réglé à trois secondes pour laisser le temps de préparer le signe.

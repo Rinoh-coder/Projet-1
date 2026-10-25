@@ -121,6 +121,7 @@ h1 {
   font-weight: 600;
   text-align: center;
   overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .audio-result {

@@ -1,59 +1,74 @@
-\chapter{Corpus LSFB-ISOL}
+\chapter{Corpus LSM}
 
-\section{Catalogue général du corpus}
-\begin{verbatim}
-{
-  "source": "LSFB-ISOL",
-  "instance_count": 13547,
-  "signer_count": 99,
-  "fields": ["id", "sign", "signer", "start", "end"],
-  "partitions": {
-    "train": 7590,
-    "test": 5957,
-    "shared_signers": 0
-  }
+\section{Illustrations des signes retenus}
+
+\newcommand{\illustrationSigne}[3]{%
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=3cm,keepaspectratio]{#3}
+\captionof{figureap}{#2}
+\label{#1}
+\addcontentsline{lof}{figure}{\protect\numberline{A \thefigureap}{#2}}
+\end{minipage}%
 }
-\end{verbatim}
 
-\section{Extrait brut d’instances LSFB-ISOL}
-\begin{verbatim}
-id,sign,signer,start,end
-CLSFBI0104A_S001_B_253439_253802,OUI,S001,253439,253802
-CLSFBI0103A_S002_B_165985_166679,NON,S002,165985,166679
-CLSFBI0103A_S001_B_367470_367816,SOURD,S001,367470,367816
-CLSFBI0104A_S001_B_479609_479848,QUOI,S001,479609,479848
-CLSFBI0104A_S002_B_476347_476533,AVOIR,S002,476347,476533
-CLSFBI0103A_S001_B_335087_335232,DIRE,S001,335087,335232
-CLSFBI0103A_S001_B_295863_296869,REGARDER,S001,295863,296869
-CLSFBI0103A_S002_B_189863_190520,COMPRENDRE,S002,189863,190520
-CLSFBI0103A_S001_B_466550_466747,FINIR,S001,466550,466747
-CLSFBI0111A_S001_B_220590_220803,BIEN,S001,220590,220803
-CLSFBI0103A_S002_B_139019_139281,VOIR,S002,139019,139281
-CLSFBI0103A_S001_B_286621_286862,DIFFERENT,S001,286621,286862
-\end{verbatim}
+\noindent
+\illustrationSigne{fig:corpus-miarahaba}{Signe Miarahaba}{\detokenize{../figures/banques d'images LSM/LSM_Bonjour_Miarahaba.png}}\hfill
+\illustrationSigne{fig:corpus-eny}{Signe Eny}{\detokenize{../figures/banques d'images LSM/LSM_Oui_Eny.png}}\par\medskip
 
-\section{Structure d’une séquence de landmarks}
+\noindent
+\illustrationSigne{fig:corpus-tsia}{Signe Tsia}{\detokenize{../figures/banques d'images LSM/LSM_Non_Tsia.png}}\hfill
+\illustrationSigne{fig:corpus-miezaka}{Signe Miezaka}{\detokenize{../figures/banques d'images LSM/LSM_Effort_Miezaka.png}}\par\medskip
+
+\noindent
+\illustrationSigne{fig:corpus-maheno}{Signe Maheno}{\detokenize{../figures/banques d'images LSM/LSM_Entendant_Maheno.png}}\hfill
+\illustrationSigne{fig:corpus-marenina}{Signe Marenina}{\detokenize{../figures/banques d'images LSM/LSM_Sourd_Marenina.png}}\par\medskip
+
+\noindent
+\illustrationSigne{fig:corpus-mora}{Signe Mora}{\detokenize{../figures/banques d'images LSM/LSM_Facile_Mora.png}}\hfill
+\illustrationSigne{fig:corpus-tanora}{Signe Tanora}{\detokenize{../figures/banques d'images LSM/LSM_Jeune_Tanora.png}}\par\medskip
+
+\noindent
+\illustrationSigne{fig:corpus-solosaina}{Signe Solosaina}{\detokenize{../figures/banques d'images LSM/LSM_Ordinateur_Solosaina.png}}\hfill
+\illustrationSigne{fig:corpus-maty}{Signe Maty}{\detokenize{../figures/banques d'images LSM/LSM_Mort_Maty.png}}\par
+
+\section{Organisation du corpus}
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Répartition des séquences du corpus LSM.}
+\label{tab:corpus-lsm-repartition}
+\begin{tabular}{|l|r|r|r|r|}
+\hline
+Ensemble & Signeurs & Séquences par signe & Nombre de signes & Total \\
+\hline
+Entraînement & 3 & 7 & 10 & 210 \\
+\hline
+Validation & 3 & 3 & 10 & 90 \\
+\hline
+Test & 1 & 10 & 10 & 100 \\
+\hline
+Total & 4 & 40 & 10 & 400 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Structure des données prétraitées}
+
+Chaque séquence est représentée par 30 frames. À chaque frame, le vecteur
+contient 33 points de pose et 21 points pour chacune des deux mains, chaque
+point étant défini par trois coordonnées.
+
 \begin{verbatim}
 {
-  "landmark_order": [
-    "pose_0..pose_32",
-    "left_hand_0..left_hand_20",
-    "right_hand_0..right_hand_20"
-  ],
-  "coordinates": 3,
-  "frames": 32,
+  "frames_per_sequence": 30,
+  "pose_points": 33,
+  "hand_points_per_hand": 21,
+  "coordinates_per_point": 3,
   "values_per_frame": 225,
-  "classes": 12
+  "classes": 10
 }
 \end{verbatim}
 
-\section{Séparation des signeurs}
-\begin{verbatim}
-{
-  "train_signers": 59,
-  "test_signers": 40,
-  "shared_signers": 0,
-  "duplicate_instance_ids": 0,
-  "duplicate_row_hash_count": 0
-}
-\end{verbatim}
+\endinput

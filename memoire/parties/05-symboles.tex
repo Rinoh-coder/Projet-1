@@ -1,27 +1,19 @@
 \begin{listofsymbols}[4cm]
-\item [$N_f$] Nombre de frames d'une séquence
-\item [$T$] Température positive utilisée pour la calibration
-\item [$P$] Nombre de landmarks utilisés pour une frame
-\item [$C$] Nombre de classes considérées
-\item [$n$] Nombre total de séquences évaluées
-\item [$i$] Indice d'une séquence
-\item [$c$] Indice d'une classe
-\item [$m$] Indice d'un modèle ou d'une répétition de validation
-\item [$j$] Indice d'une répétition ou d'un modèle de l'ensemble
+\item [$T$] Nombre de frames d'une séquence, égal à 30
+\item [$D$] Nombre de caractéristiques par frame, égal à 225
+\item [$C$] Nombre de classes du vocabulaire, égal à 10
+\item [$N$] Nombre de séquences d'un ensemble de données
 \item [$y_i$] Classe réelle de la séquence $i$
-\item [$\hat y_i$] Classe prédite pour la séquence $i$
+\item [$\hat{y}_i$] Classe prédite pour la séquence $i$
 \item [$p_c$] Probabilité prédite pour la classe $c$
-\item [$\bar p_c$] Probabilité moyenne de la classe $c$ sur les modèles de l'ensemble
-\item [$z_c$] Logit associé à la classe $c$ avant softmax
-\item [$\tau_c,\tau_m,\tau_a$] Seuils de confiance, de marge et d'accord pour la politique de rejet
-\item [$TP_c,FP_c,FN_c$] Vrais positifs, faux positifs et faux négatifs de la classe $c$
 \item [$P_c$] Précision de la classe $c$
 \item [$R_c$] Rappel de la classe $c$
 \item [$F_{1,c}$] F1-score de la classe $c$
-\item [$\mu$] Moyenne d'une métrique sur plusieurs graines
-\item [$\sigma$] Écart-type d'une métrique
-\item [$s$] Écart-type d'échantillon calculé sur plusieurs répétitions
+\item [$F_{1,\mathrm{macro}}$] Moyenne des F1-scores des $C$ classes
+\item [$TP_c$] Nombre de vrais positifs de la classe $c$
+\item [$FP_c$] Nombre de faux positifs de la classe $c$
+\item [$FN_c$] Nombre de faux négatifs de la classe $c$
 \item [$\mathbf{1}(\cdot)$] Fonction indicatrice, égale à 1 si la condition est vraie et à 0 sinon
-\item [\texttt{[32,225]}] Forme de l'entrée brute du modèle actif avant prétraitement
-\item [\texttt{[32,231]}] Forme de la représentation interne fournie à la GRU
+\item [$\sigma$] Écart-type du bruit gaussien ajouté aux coordonnées
+\item [\texttt{[30,225]}] Forme d'une séquence d'entrée du modèle
 \end{listofsymbols}

@@ -1,205 +1,157 @@
-\chapter{Codes Python et application}
+\chapter{Extraits du code du prototype LSM}
 
-\section{Transformation des landmarks}
+Cette annexe rassemble des extraits représentatifs du code réellement utilisé
+dans le prototype LSM.
+
+\section{Extraction des points de pose et des mains}
+
+Le traitement vidéo conserve les dernières coordonnées disponibles lorsqu'un
+repère n'est temporairement pas détecté. Les 33 points du corps et les 21 points
+de chaque main forment 225 valeurs par image.
+
 \begin{verbatim}
-def to_gru_features(rows):
-    sequence = validate_array(rows, (32, 225)).reshape(32, 75, 3)
-    pose = sequence[:, :33, :]
-    normalized = sequence.copy()
-    for frame in range(sequence.shape[0]):
-        points = pose[frame]
-        center = (points[11] + points[12]) / 2.0
-        scale = np.linalg.norm(points[11] - points[12])
-        if not np.isfinite(center).all():
-            center = np.zeros(3, dtype=np.float32)
-        if not np.isfinite(scale) or scale < 1e-4:
-            scale = 1.0
-        normalized[frame] = (sequence[frame] - center) / scale
-    normalized = np.nan_to_num(normalized)
-    torso = normalized[:, [11, 12], :].mean(axis=1)
-    wrist_relative = normalized[:, [15, 16], :] - torso[:, None, :]
-    augmented = np.concatenate([normalized, wrist_relative], axis=1)
-    return augmented.reshape(1, 32, 231).astype(np.float32)
+if results.pose_landmarks:
+    corps = np.array([
+        [lm.x, lm.y, lm.z]
+        for lm in results.pose_landmarks.landmark
+    ])
+    derniere_pose = corps
+else:
+    corps = derniere_pose
+    n_sans_detection += 1
+
+vecteur = np.concatenate([
+    corps.flatten(),
+    main_g.flatten(),
+    main_d.flatten()
+])
+frames.append(vecteur)
 \end{verbatim}
 
-\section{Architecture GRU retenue avec poignets relatifs}
-\begin{verbatim}
-class GRUWristTorsoClassifier(nn.Module):
-    def __init__(self, features=231, classes=12):
-        super().__init__()
-        self.proj = nn.Sequential(
-            nn.Linear(features, 128), nn.ReLU(), nn.Dropout(0.2)
-        )
-        self.gru = nn.GRU(
-            128, 64, batch_first=True, bidirectional=True
-        )
-        self.head = nn.Sequential(
-            nn.Linear(128, 64), nn.ReLU(), nn.Dropout(0.3),
-            nn.Linear(64, classes)
-        )
+\section{Rééchantillonnage et normalisation}
 
-    def forward(self, x):
-        sequence, _ = self.gru(self.proj(x))
-        return self.head(sequence.mean(dim=1))
+Les séquences sont ramenées à 30 frames. À chaque frame, les coordonnées sont
+centrées sur le milieu des épaules et divisées par la distance entre celles-ci.
+
+\begin{verbatim}
+indices = np.linspace(0, len(sequence) - 1, n_cible)
+sequence = np.array([
+    sequence[int(round(index))] for index in indices
+])
+
+for frame_index in range(sequence.shape[0]):
+    epaule_g = sequence[frame_index, 33:36]
+    epaule_d = sequence[frame_index, 36:39]
+    centre = (epaule_g + epaule_d) / 2.0
+    distance = np.linalg.norm(epaule_g - epaule_d)
+    if distance < 1e-6:
+        distance = 1.0
+    for point_index in range(0, 225, 3):
+        sequence[frame_index, point_index:point_index + 3] = (
+            sequence[frame_index, point_index:point_index + 3] - centre
+        ) / distance
 \end{verbatim}
 
-\section{Calcul du score de confiance}
+\section{Conversion du modèle Keras en TFLite}
+
+Le script de conversion conserve les poids appris, active l'optimisation
+TFLite et vérifie l'artefact avec un interpréteur avant son écriture.
+
 \begin{verbatim}
-logits = torch.stack([model(tensor)[0] for model in GRU_MODELS])
-per_model_probabilities = torch.softmax(logits, dim=1).numpy()
-raw_probabilities = per_model_probabilities.mean(axis=0)
-order = np.argsort(raw_probabilities)[::-1]
-label = GRU_LABELS[int(order[0])]
-raw_confidence = float(raw_probabilities[order[0]])
-margin = float(
-    raw_probabilities[order[0]] - raw_probabilities[order[1]]
-)
-votes = np.argmax(per_model_probabilities, axis=1)
-ensemble_agreement = float(np.mean(votes == int(order[0])))
+model = tf.keras.models.load_model(args.model, compile=False)
+model = make_tflite_compatible_model(model, tf)
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+converter.optimizations = [tf.lite.Optimize.DEFAULT]
+model_content = converter.convert()
+
+interpreter = tf.lite.Interpreter(model_content=model_content)
+interpreter.allocate_tensors()
+args.output.parent.mkdir(parents=True, exist_ok=True)
+args.output.write_bytes(model_content)
 \end{verbatim}
 
-\section{Temperature scaling et rejet}
-\begin{verbatim}
-temperature = float(GRU_CALIBRATION.get("temperature", 1.0))
-calibrated_logits = np.log(
-    np.clip(raw_probabilities, 1e-12, 1.0)
-) / temperature
-calibrated_logits -= calibrated_logits.max()
-probabilities = np.exp(calibrated_logits)
-probabilities /= probabilities.sum()
+\section{Inférence TFLite}
 
-confidence = float(probabilities[order[0]])
-accepted = (
-    confidence >= confidence_threshold
-    and margin >= margin_threshold
-    and ensemble_agreement >= agreement_threshold
-)
+L'interpréteur est initialisé une fois au démarrage du backend. Son accès est
+sérialisé pendant l'inférence et la classe présentant la probabilité maximale
+est renvoyée avec son score.
+
+\begin{verbatim}
+with _INTERPRETER_LOCK:
+    INTERPRETER.set_tensor(INPUT_DETAILS["index"], batch)
+    INTERPRETER.invoke()
+    probabilites = INTERPRETER.get_tensor(
+        OUTPUT_DETAILS["index"]
+    )[0]
+
+index = int(np.argmax(probabilites))
+return {
+    "signe": CLASSES[index],
+    "confiance": float(probabilites[index]),
+}
 \end{verbatim}
 
-\section{Contrat de prédiction FastAPI}
+\section{Endpoint FastAPI}
+
+L'endpoint reçoit le clip vidéo sous forme de fichier multipart et délègue le
+traitement au module d'inférence. Les vidéos non exploitables sont renvoyées
+comme erreurs de requête.
+
 \begin{verbatim}
-@app.post("/predict-gru")
-def predict_gru(payload: Prediction):
+@app.post("/predire")
+def predire_endpoint(file: UploadFile = File(...)):
+    video_bytes = file.file.read()
     try:
-        features = to_gru_features(payload.landmarks)
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return gru_prediction_response(features)
+        return predire(video_bytes)
+    except InvalidVideoError as error:
+        raise HTTPException(
+            status_code=422, detail=str(error)
+        ) from error
 \end{verbatim}
 
-\section{Endpoints backend pertinents}
+\section{Capture webcam et appel de l'API}
+
+Le navigateur enregistre un clip à partir du flux webcam puis l'envoie à
+l'endpoint de prédiction avec \texttt{FormData}.
+
 \begin{verbatim}
-GET  /health
-GET  /model-info
-GET  /candidate-info
-POST /predict-gru       # route active, entrée [32,225]
-POST /predict           # baseline conservée, entrée [32,225]
-POST /predict-candidate # candidat mains seules, entrée [32,126]
+const chunks = [];
+recorder.addEventListener("dataavailable", (event) => {
+  if (event.data.size > 0) chunks.push(event.data);
+});
+recorder.start();
+window.setTimeout(() => {
+  if (recorder.state === "recording") recorder.stop();
+}, captureDurationMs());
+
+const formData = new FormData();
+formData.append("file", clip, "capture.webm");
+const response = await fetch("/predire", {
+  method: "POST",
+  body: formData,
+});
 \end{verbatim}
 
-\section{Validation de la forme et des valeurs}
+\section{Synthèse vocale et création du fichier WAV}
+
+Le texte prédit est vocalisé dans le navigateur avec Transformers.js et le
+modèle ONNX malgache. Le signal produit est converti en WAV PCM pour le lecteur
+audio HTML.
+
 \begin{verbatim}
-def validate_landmarks(landmarks):
-    array = np.asarray(landmarks, dtype=np.float32)
-    if array.shape != (32, 225):
-        raise ValueError("landmarks doit être de forme [32,225]")
-    if not np.isfinite(array).all():
-        raise ValueError("landmarks contient une valeur non finie")
-    return array
+const { pipeline, env } = await import(
+  "https://cdn.jsdelivr.net/npm/@xenova/transformers"
+);
+env.backends.onnx.wasm.numThreads = 1;
+const synthesizer = await pipeline(
+  "text-to-speech",
+  "elloza/mms-tts-mlg-onnx",
+  { quantized: true }
+);
+const speech = await synthesizer(text);
+audioResult.src = URL.createObjectURL(
+  makeWav(speech.audio, speech.sampling_rate)
+);
 \end{verbatim}
 
-\section{Segmentation causale JavaScript}
-\begin{verbatim}
-async function processCausalFrame(activityFrame, modelFrame) {
-  const active = causalActivity(activityFrame) >= CAUSAL.threshold;
-  causalPrevious = activityFrame;
-  frames.push(modelFrame);
-  if (causalState === 'IDLE') {
-    if (active) {
-      causalState = 'ARMING';
-      causalActiveRun = 1;
-      causalSegment = [modelFrame];
-    }
-    return null;
-  }
-  causalSegment.push(modelFrame);
-  if (active) {
-    causalState = 'ACTIVE';
-    causalQuietRun = 0;
-    return null;
-  }
-  causalState = 'RELEASING';
-  causalQuietRun += 1;
-  if (causalQuietRun < CAUSAL.endRun) return null;
-  return causalSegment.slice(
-    0, causalSegment.length - causalQuietRun + 3
-  );
-}
-\end{verbatim}
-
-\section{Appel de la route active}
-\begin{verbatim}
-async function predict(landmarks) {
-  const response = await fetch('/predict-gru', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({landmarks})
-  });
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.detail || 'Erreur de prédiction');
-  }
-  return data;
-}
-\end{verbatim}
-
-\section{Contrôle de séparation par signeur}
-\begin{verbatim}
-shared_signers = sorted(
-    {row["signer"] for row in train}
-    & {row["signer"] for row in test}
-)
-if shared_signers:
-    raise RuntimeError(
-        f"split leak: shared signer ids={shared_signers}"
-    )
-\end{verbatim}
-
-\section{Apprentissage de la température}
-\begin{verbatim}
-fitted = minimize_scalar(
-    lambda log_temperature: nll(
-        probabilities, labels, np.exp(log_temperature)
-    ),
-    bounds=(np.log(0.05), np.log(20.0)),
-    method="bounded",
-)
-temperature = float(np.exp(fitted.x))
-\end{verbatim}
-
-\section{Génération du graphique F1 par classe}
-\begin{verbatim}
-comparison = json.loads(
-    (ROOT / "results/revision_analysis.json").read_text()
-)
-classes = ["OUI", "SOURD", "AVOIR", "QUOI", "REGARDER", "NON",
-           "DIFFERENT", "DIRE", "FINIR", "BIEN", "VOIR", "COMPRENDRE"]
-rf = [comparison["rf_gru_f1"][label]["rf"] for label in classes]
-gru = [comparison["rf_gru_f1"][label]["gru"] for label in classes]
-ax.bar(x - width / 2, rf, width, label="Random Forest complet")
-ax.bar(
-    x + width / 2, gru, width,
-    label="GRU retenue avec poignets relatifs"
-)
-\end{verbatim}
-
-\section{Tests du contrat API}
-\begin{verbatim}
-def test_gru_prediction_returns_ranked_result():
-    response = client.post("/predict-gru", json=valid_gru_payload())
-    assert response.status_code == 200
-    body = response.json()
-    assert "wrist-torso" in body["model_version"]
-    assert len(body["top3"]) == 3
-    assert 0.0 <= body["ensemble_agreement"] <= 1.0
-\end{verbatim}
+\endinput

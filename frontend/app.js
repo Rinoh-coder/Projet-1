@@ -1,6 +1,6 @@
 const TARGET_CAPTURE_FRAMES = 60;
 const FALLBACK_FRAME_RATE = 30;
-const PREPARATION_SECONDS = 2;
+const PREPARATION_SECONDS = 3;
 const camera = document.querySelector("#camera");
 const captureButton = document.querySelector("#capture-button");
 const status = document.querySelector("#status");
@@ -246,7 +246,9 @@ async function translateClip(clip) {
   const prediction = await response.json();
   if (
     typeof prediction.signe !== "string" ||
-    !Number.isFinite(prediction.confiance)
+    !Number.isFinite(prediction.confiance) ||
+    prediction.confiance < 0 ||
+    prediction.confiance > 1
   ) {
     throw new Error("Réponse de traduction invalide.");
   }
@@ -278,7 +280,11 @@ captureButton.addEventListener("click", async () => {
     const clip = await recordClip();
     setStatus("Analyse…", "busy");
     const prediction = await translateClip(clip);
-    result.textContent = prediction.signe;
+    const confidence = new Intl.NumberFormat("fr-FR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(prediction.confiance * 100);
+    result.textContent = `${prediction.signe}\nConfiance : ${confidence} %`;
     result.hidden = false;
     setStatus("Audio…", "busy");
     setStatus(await synthesize(prediction.signe));
