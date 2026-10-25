@@ -114,3 +114,97 @@ car le tableau n'en rapporte pas.
   encadreurs portent la distinction « Dr. » dans ces pages. Une recompilation
   confirme la prise en compte du nouveau fichier et conserve un PDF de
   56 pages.
+
+## Harmonisation finale du modèle déployé
+
+Sur instruction explicite de l'utilisateur : le modèle exécuté par l'application
+est le modèle de référence GRU pose+mains (30 frames, 128 unités, 137 610
+paramètres, exactitude de 92,0 %) converti au format TFLite. La distinction
+narrative antérieure entre le checkpoint expérimental Colab (92 %) et un
+artefact TFLite distinct (90 %) est donc retirée du rapport.
+
+### Modifications
+
+- `couverture/2-encadreurs.tex` : distinction « M. » pour
+  RANDRIAMASINORO Njakarison Menja (vérifiée ; « Dr. » conservé pour
+  RAJONIRINA Solofanja Jeannie).
+- `parties/03-resume.tex` : résumé et abstract réécrits en formulations
+  simples et claires ; suppression de la phrase sur les artefacts distincts
+  (et de son équivalent anglais) ainsi que du « 90 résultats corrects sur
+  100 » ; le résumé présente désormais le GRU retenu à 92,0 %, sa conversion
+  TFLite et l'application web, avec l'essentiel des limites.
+- `parties/chapitre3.tex` : la figure de la matrice de confusion de l'ancien
+  artefact (90 %) et son analyse par classe sont retirées ; la section devient
+  « Analyse des erreurs en conditions d'utilisation » et s'appuie sur les dix
+  essais vidéo de l'endpoint (chapitre 4) avec des hypothèses au conditionnel.
+  La confrontation justifie désormais le choix du GRU de référence par la
+  comparaison contrôlée avec le LSTM (tous hyperparamètres identiques), la
+  cohérence du pipeline pose+mains et la continuité entraînement/inférence.
+- `parties/chapitre4.tex` : le paragraphe de conversion indique que l'artefact
+  TFLite exécuté par le backend est la conversion du modèle de référence
+  évalué à 92,0 % ; retrait des mentions « n'est pas déployé » et de la
+  correspondance de checkpoints.
+- `parties/chapitre5.tex` : retrait des évaluations séparées à 90 % ; la
+  perspective de reproductibilité porte sur l'archivage de la chaîne de
+  production de l'artefact (checkpoint, script et journal de conversion) et
+  sur la vérification comparée Keras/TFLite sur les données de test. La
+  perspective finale renforce la traduction continue : corpus plus ample en
+  quantité et en qualité, annotations fiables et ressources humaines et
+  linguistiques dédiées.
+- `parties/07-conclusion.tex` : le GRU de référence est présenté comme le
+  modèle retenu et déployé après conversion TFLite ; les essais vidéo de
+  l'endpoint (7/10) restent consignés.
+- `parties/06-introduction.tex` : le plan des chapitres mentionne l'analyse
+  des erreurs en conditions d'utilisation au lieu d'un « test de robustesse »
+  obsolète.
+- Aucun F1-score du LSTM augmenté n'a été ajouté au-delà de la valeur
+  0,7840 déjà présente dans le tableau du chapitre 3 ; la note d'indisponibilité
+  avaient déjà été supprimée dans une révision antérieure.
+
+### Vérifications
+
+- Compilation avec `latexmk -g -pdf -interaction=nonstopmode
+  main_francais.tex` : réussie, PDF de 57 pages.
+- Aucune erreur LaTeX, aucune référence ou citation non définie dans le log.
+- `git diff --check` : réussi.
+- Recherche dans `memoire/parties/` : plus aucune occurrence de
+  « 90/100 », « n'est pas déployé » ou de correspondance de checkpoints
+  à établir, hors la perspective d'archivage volontairement conservée.
+
+### Dédoublonnage chapitres 3 et 4
+
+- `parties/chapitre3.tex` : la section « Analyse des erreurs en conditions
+  d'utilisation » conserve le résultat (7/10) et les trois confusions,
+  nécessaires à son interprétation, mais s'ancre désormais directement dans
+  le tableau des essais de l'endpoint du chapitre 4
+  (`Tableau~\ref{tab:tests-integration}`) au lieu de reformuler le protocole.
+- `parties/chapitre4.tex` : la section « Tests d'intégration et validation »
+  reste factuelle (méthode, tableau, portée du parcours serveur validé) et
+  renvoie au chapitre 3 pour l'analyse de l'écart avec l'évaluation hors
+  ligne ; la phrase dupliquée sur la portée des essais a été retirée de ce
+  chapitre.
+- Compilation revalidée après dédoublonnage : PDF de 57 pages, aucune
+  erreur, aucune référence non définie.
+
+### Audit complet de cohérence
+
+- `parties/chapitre5.tex` : la phrase faisant de Tsia et Maty les signes les
+  plus difficiles se référait à l'ancienne matrice de confusion (90 %)
+  retirée ; elle est remplacée par une formulation fondée sur les erreurs des
+  essais vidéo analysées au chapitre 3 (Marenina, Maty, Miarahaba).
+- `parties/chapitre3.tex` : les effectifs de classe par partition sont
+  corrigés en 21 (entraînement), 9 (validation), 10 (test) par signe, en
+  cohérence avec le chapitre 2 et l'annexe « Corpus LSM » ; double
+  « ensuite » de l'annonce du plan simplifié.
+- Contrôles arithmétiques effectués : 92/100 séquences ; écarts de 2 et 1
+  séquences entre les trois meilleures configurations ; 251 344 octets =
+  245,5 Kio et 1 677 751 octets = 1,60 Mio, réduction de 85,0 % ; 99 594
+  paramètres = −27,6 % par rapport à 137 610 ; 225 = 33 x 3 + 21 x 3 x 2 ;
+  225 - 99 = 126 coordonnées pour les mains seules ; 1 629 = 225 + 468 x 3,
+  ratio 7,24 ; 12 000 = 400 x 30 frames et 24 000 = 400 x 60 ; répartition
+  annexe 3 x 7 x 10 = 210, 3 x 3 x 10 = 90, 10 x 10 = 100.
+- Vérification exhaustive : chiffres identiques dans le résumé, les
+  chapitres 3 à 5 et la conclusion ; liste des erreurs identique dans les
+  trois sections concernées ; aucune mention de Tsia issue de l'ancienne
+  matrice ; compilation finale propre (57 pages, zéro erreur, zéro
+  référence non définie).
