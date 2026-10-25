@@ -1,6 +1,6 @@
 \begin{listofsymbols}[4cm]
-\item [$T$] Nombre de frames d'une séquence, égal à 30
-\item [$D$] Nombre de caractéristiques par frame, égal à 225
+\item [$T$] Nombre de frames d'une séquence : 15, 30 ou 45 selon la configuration
+\item [$D$] Nombre de caractéristiques par frame : 225 pour le corps et les mains, 126 pour les mains seules
 \item [$C$] Nombre de classes du vocabulaire, égal à 10
 \item [$N$] Nombre de séquences d'un ensemble de données
 \item [$y_i$] Classe réelle de la séquence $i$
@@ -15,5 +15,5 @@
 \item [$FN_c$] Nombre de faux négatifs de la classe $c$
 \item [$\mathbf{1}(\cdot)$] Fonction indicatrice, égale à 1 si la condition est vraie et à 0 sinon
 \item [$\sigma$] Écart-type du bruit gaussien ajouté aux coordonnées
-\item [\texttt{[30,225]}] Forme d'une séquence d'entrée du modèle
+\item [\texttt{[T,D]}] Forme temporelle et dimension des caractéristiques d'une séquence d'entrée
 \end{listofsymbols}

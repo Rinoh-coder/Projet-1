@@ -52,7 +52,7 @@ Transformers.js & Serveur TTS Python & Audio généré côté navigateur, sans d
 
 Le choix de FastAPI, plutôt que Gradio, répond au besoin de séparer l'interface de la logique d'inférence. FastAPI expose l'endpoint POST \texttt{/predire} et sert les fichiers statiques de la page web \citerefs{FastAPIDocs}. Cette séparation facilite le contrôle du contrat HTTP et limite les responsabilités du backend.
 
-Le modèle sauvegardé a été converti au format TFLite afin de réduire la taille de l'artefact d'inférence, au moyen du convertisseur documenté par TensorFlow \citerefs{TFLiteConverterDocs}. Le fichier TFLite mesure 251\,344 octets (245,5 Kio), contre 1\,677\,751 octets (environ 1,60 Mio) pour le modèle Keras, soit une réduction de taille de 85,0 \%. La précision du modèle TFLite a été vérifiée sur les 100 séquences de test ; le journal de conversion rapporte également un accord de classes de 100 \% avec Keras sur cet ensemble. Le backend exécute ce modèle avec LiteRT \citerefs{LiteRTDocs}. Le modèle Keras constitue l'artefact d'entraînement et de recherche ; le fichier TFLite est l'artefact de déploiement utilisé par l'application.
+Le modèle Keras stocké dans le dépôt a été converti au format TFLite afin de réduire la taille de l'artefact d'inférence, au moyen du convertisseur documenté par TensorFlow \citerefs{TFLiteConverterDocs}. Le fichier TFLite mesure 251\,344 octets (245,5 Kio), contre 1\,677\,751 octets (environ 1,60 Mio) pour le modèle Keras, soit une réduction de taille de 85,0 \%. Sur les 100 séquences prétraitées du jeu de test, l'artefact TFLite actuellement déployé obtient 90 prédictions correctes ; le journal de conversion indique un accord de classes de 100 \% avec le modèle Keras stocké pour cette vérification. Ce résultat concerne ces artefacts enregistrés et ne doit pas être confondu avec le nouveau GRU de référence à 92,0 \% rapporté au chapitre 3, dont la correspondance avec les poids déployés reste à établir. Le backend exécute le modèle TFLite avec LiteRT \citerefs{LiteRTDocs}.
 
 Le choix de Transformers.js pour la synthèse vocale vise également à limiter les dépendances du backend. Le modèle chargé dans le navigateur nécessite une connexion Internet lors du premier chargement, mais évite le traitement audio côté serveur.
 
@@ -187,4 +187,4 @@ Signe attendu & Signe prédit & Confiance & Correct & HTTP \\
 \end{tabular}
 \end{table}
 
-Un essai distinct de l'application, affichant le résultat « Miarahaba », son score de confiance et le lecteur audio, est illustré à la Figure~\ref{fig:interface-application}.
+Une capture distincte de l'interface, montrant le résultat « Miarahaba », un score de confiance et le lecteur audio, est illustrée à la Figure~\ref{fig:interface-application}. Cette capture illustre l'affichage ; elle ne fait pas partie des dix requêtes vidéo du Tableau~\ref{tab:tests-integration}, parmi lesquelles la vidéo Miarahaba est classée Solosaina.

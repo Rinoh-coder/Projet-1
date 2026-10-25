@@ -280,7 +280,7 @@
     \begin{titlepage}
         \renewcommand{\baselinestretch}{1.2}
         \begin{center}
-            \includegraphics[width=3cm]{figures/logoESPA}
+            \includegraphics[width=3cm]{\detokenize{../figures/images du memoire/logoESPA.jpg}}
             \hfill\includegraphics[width=3cm]{figures/logoUNA}\\
             \parbox{10cm}{{\fontfamily{lmr}\selectfont 
             \begin{center}
@@ -347,7 +347,7 @@
         \let\footnoterule\relax%
         \begin{center}%
             
-            \includegraphics[width=3cm]{figures/logoESPA}
+            \includegraphics[width=3cm]{\detokenize{../figures/images du memoire/logoESPA.jpg}}
             \hfill\includegraphics[width=3cm]{figures/logoUNA}\\
             \parbox{10cm}{{\fontfamily{lmr}\selectfont 
             \begin{center}

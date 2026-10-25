@@ -41,6 +41,8 @@ Maty & Mort \\
 
 Les séquences sont enregistrées à l'aide du script \texttt{src/capture.py}. La configuration demande une résolution de 640 par 480 pixels et une cadence de 30 images par seconde ; chaque capture dure deux secondes et est précédée d'un compte à rebours de trois secondes. Ces valeurs sont des réglages demandés à la caméra et ne garantissent pas à elles seules les conditions physiques d'enregistrement. Le code ne fixe ni la distance entre le signeur et la caméra, ni l'éclairage, ni le fond.
 
+Une vérification des fichiers du corpus confirme que les 400 vidéos sont lisibles et présentent toutes une résolution de 640 × 480 pixels, une cadence de 30 images par seconde et 60 images, soit une durée nominale de deux secondes. Chaque signeur a dix séquences pour chacun des dix signes.
+
 Les métadonnées du corpus recensent quatre signeurs, chacun associé à dix séquences de chacun des dix signes. Le corpus comprend ainsi quarante séquences par signe et quatre cents séquences au total. Cette diversité permet d'évaluer le modèle sur un signeur qui n'a participé ni à l'entraînement ni à la validation, sans pour autant couvrir toute la variabilité des locuteurs de la LSM.
 
 Les séances de capture se sont déroulées dans deux pièces, avec un éclairage naturel
@@ -58,6 +60,8 @@ MediaPipe Holistic regroupe des détecteurs de pose, des mains et du visage. Pou
 
 Le projet utilise uniquement les points du corps et des mains, soit 33 + 21 × 2 = 75 points. Les points du visage sont écartés dans un premier temps, car ils augmentent fortement la dimension du vecteur sans que leur apport soit établi pour un vocabulaire de dix signes. Cette décision réduit la dimension de l'entrée et le coût d'entraînement. Elle pourra être révisée si les résultats montrent que certains signes se distinguent principalement par l'expression faciale.
 
+Le visage MediaPipe comporte 468 points, soit 1\,404 coordonnées supplémentaires. Leur inclusion ferait passer le vecteur de 225 à 1\,629 valeurs par image, soit une dimension 7,24 fois plus grande. Ce calcul justifie le périmètre initial de représentation, mais ne mesure pas l'effet des points faciaux sur les performances : aucune expérience comparative avec et sans visage n'a été menée.
+
 \subsection{Structure du vecteur d'entrée}
 
 Chaque point est décrit par ses trois coordonnées, ce qui donne un vecteur de 75 × 3 = 225 valeurs par image. Les coordonnées sont concaténées dans l'ordre suivant : les 33 points du corps, les 21 points de la main gauche, puis les 21 points de la main droite. Cet ordre est conservé pour toutes les images et toutes les séquences ; chaque position du vecteur correspond ainsi au même point.
@@ -66,9 +70,13 @@ Chaque point est décrit par ses trois coordonnées, ce qui donne un vecteur de 
 
 Les séquences sont ramenées à trente images par sélection des images les plus proches des positions régulièrement espacées sur la durée de la séquence. Cette opération conserve une représentation temporelle de l'ensemble du geste et fournit une longueur fixe aux modèles.
 
+Les fichiers d'origine contenant 60 images, ce rééchantillonnage réduit de moitié le nombre d'images fournies au modèle. Il fixe la dimension temporelle de l'entrée ; aucune comparaison directe entre 30 et 60 images n'a été réalisée pour mesurer l'information perdue ou conservée.
+
 \subsection{Normalisation}
 
 Les signeurs n'ont pas tous la même taille ni la même position par rapport à la caméra. Pour atténuer ces différences, les coordonnées sont centrées sur le point situé entre les deux épaules, puis divisées par la distance entre celles-ci. Cette étape est appliquée à chaque séquence ; son effet propre sur les performances n'a pas été évalué séparément.
+
+Une vérification du tenseur prétraité confirme que, sur les 12\,000 images des 400 séquences, le centre des deux épaules est à l'origine et leur distance vaut un, à l'arrondi près des nombres flottants. Ce contrôle valide l'application de la transformation, mais ne démontre pas à lui seul une amélioration de la reconnaissance.
 
 \subsection{Gestion des données manquantes}
 
@@ -99,7 +107,9 @@ Total & 0 (0,00 \%) & 9\,520 (39,67 \%) & 1\,784 (7,43 \%) \\
 \end{tabular}
 \end{table}
 
-Chaque mesure porte sur le groupe complet, soit 33 points de pose ou 21 points par main, et non sur chaque landmark isolé. Une absence de détection ne permet pas, à elle seule, d'en déterminer la cause. Les coordonnées absentes sont remplacées par la dernière valeur détectée ; avant toute détection, cette valeur est initialisée à zéro. Si le corps n'est pas détecté dans plus de 20 \% des images, le script d'extraction rejette la séquence. Il ne déclenche pas automatiquement une nouvelle capture : tout remplacement doit être réalisé séparément.
+La pose est détectée dans les 24\,000 images. Les non-détections concernent davantage la main gauche (39,67 \% des images) que la main droite (7,43 \%), avec des variations marquées selon le signe : pour Tsia, la main gauche n'est pas détectée dans 60,25 \% des images, contre 0,12 \% pour la droite ; pour Maty, les taux sont respectivement de 0,46 \% et 18,50 \%. Ces écarts décrivent la présence de détections, mais ne permettent pas de distinguer une main non mobilisée dans le signe d'une occultation ou d'un échec du détecteur. Ils ne doivent donc pas être interprétés directement comme des taux d'erreur. L'analyse s'appuie sur le mode dynamique de MediaPipe Holistic 0.10.14 ; le script \texttt{src/audit\_corpus.py} permet de reproduire les contrôles structurels et numériques sur le corpus.
+
+Chaque mesure porte sur le groupe complet, soit 33 points de pose ou 21 points par main, et non sur chaque landmark isolé. Une absence de détection ne permet pas, à elle seule, d'en déterminer la cause. Les coordonnées absentes sont remplacées par la dernière valeur détectée ; avant toute détection, cette valeur est initialisée à zéro. En l'absence de détection de la pose pendant plus de 20 \% des images, le script d'extraction rejette la séquence. Il ne déclenche pas automatiquement une nouvelle capture : tout remplacement doit être réalisé séparément.
 
 \section{Préparation des données}
 
@@ -111,27 +121,27 @@ Pour chacun des trois signeurs utilisés pour l'entraînement et la validation, 
 
 \subsection{Distribution des classes}
 
-Avant l'entraînement, la distribution des classes dans chaque ensemble est vérifiée. Chaque signe est représenté par un nombre comparable de séquences dans l'ensemble d'entraînement. Cette vérification évite qu'un signe soit systématiquement mal appris à cause d'un déséquilibre.
+La distribution des classes est équilibrée dans les trois ensembles : chaque signe compte 21 séquences d'entraînement, 9 de validation et 10 de test. L'exactitude globale n'est donc pas dominée par une classe majoritaire dans ces partitions. Cette égalité des effectifs ne supprime cependant pas la limite liée à un seul signeur dans l'ensemble de test.
 
 \subsection{Augmentation de données}
 
-Une expérience a évalué si deux transformations pouvaient améliorer la généralisation à des signeurs non vus. Le bruit gaussien ajoute à chaque coordonnée un tirage aléatoire de moyenne nulle et d'écart-type \(\sigma=0{,}01\). Le jitter temporel applique un décalage circulaire aléatoire compris entre \(-2\) et \(+2\) frames, afin d'éprouver l'effet de petites perturbations temporelles. Deux copies augmentées de chaque séquence ont été ajoutées à l'entraînement, triplant ainsi sa taille. L'effet de ces transformations est évalué séparément des résultats principaux.
+Une expérience a évalué si deux transformations pouvaient améliorer la généralisation à des signeurs non vus. Le bruit gaussien ajoute à chaque coordonnée normalisée un tirage aléatoire de moyenne nulle et d'écart-type \(\sigma=0{,}01\), soit 1 \% de la distance entre les épaules utilisée comme unité. Le jitter applique un décalage temporel circulaire aléatoire compris entre \(-2\) et \(+2\) images. Deux copies augmentées de chaque séquence ont été ajoutées à l'entraînement, triplant ainsi sa taille. Les transformations étant appliquées ensemble, cette expérience ne permet pas d'isoler l'effet propre de chacune.
 
 \section{Architectures comparées}
 
 \subsection{Architecture LSTM}
 
-Le modèle LSTM prend en entrée une séquence de trente images, chacune décrite par un vecteur de 225 valeurs. Il comporte une couche LSTM de 128 unités, suivie d'une couche de dropout à 0,4, puis d'une couche dense de dix unités avec activation softmax, qui produit une probabilité pour chaque signe.
+Le modèle LSTM de référence prend en entrée une séquence de trente images, chacune décrite par un vecteur de 225 valeurs. Il comporte une couche LSTM de 128 unités, suivie d'une couche de dropout à 0,4, puis d'une couche dense de dix unités avec activation softmax, qui produit une probabilité pour chaque signe.
 
 L'entraînement utilise l'optimiseur Adam avec un taux d'apprentissage de 0,001, une taille de lot de 16, et une perte d'entropie croisée catégorielle. Un arrêt anticipé est appliqué sur la perte de validation, avec une patience de dix époques. Le meilleur modèle, au sens de la perte de validation, est sauvegardé.
 
 \subsection{Architecture GRU}
 
-Le modèle GRU reprend la même architecture, à une différence près : la couche récurrente est une couche GRU au lieu d'une couche LSTM. Les autres paramètres sont identiques : nombre d'unités, dropout, optimiseur, taux d'apprentissage, taille de lot, arrêt anticipé. Cette identité permet d'attribuer les différences de performance à la seule cellule récurrente.
+Le modèle GRU de référence reprend la même architecture, à une différence près : la couche récurrente est une couche GRU au lieu d'une couche LSTM. Les autres paramètres sont identiques : nombre d'unités, dropout, optimiseur, taux d'apprentissage, taille de lot et arrêt anticipé. Cette identité définit la comparaison principale entre les deux cellules récurrentes.
 
-\subsection{Hyperparamètres communs}
+\subsection{Hyperparamètres de référence}
 
-Tous les hyperparamètres sont fixés avant l'entraînement et conservés identiques pour les deux modèles : dimension de l'entrée, nombre d'unités, dropout, optimiseur, taux d'apprentissage, taille de lot, nombre d'époques, patience. Cette fixation garantit que la comparaison porte uniquement sur la cellule récurrente.
+Pour la comparaison de référence, les hyperparamètres sont identiques pour le LSTM et le GRU : dimension de l'entrée, nombre d'unités, dropout, optimiseur, taux d'apprentissage, taille de lot et patience de l'arrêt anticipé. La campagne décrite au chapitre 3 comprend également des configurations où la taille du modèle et le dropout varient ; ces configurations sont comparées comme des ensembles de paramètres complets.
 
 \section{Protocole d'évaluation}
 
@@ -161,14 +171,14 @@ Ces mesures sont complémentaires. L'exactitude globale donne une vue d'ensemble
 
 \subsection{Procédure}
 
-Pour chaque modèle, l'entraînement est lancé avec une graine fixée. Les courbes de perte et d'exactitude sont tracées pour l'entraînement et la validation. Le modèle avec la meilleure perte de validation est retenu. Les performances sont ensuite mesurées sur l'ensemble de test, qui n'a pas été utilisé pendant l'entraînement ni pendant la sélection du modèle.
+Les partitions d'entraînement, de validation et de test sont préparées à partir d'une graine fixée dans la configuration du projet ; le script d'augmentation fixe également la graine utilisée pour ses transformations aléatoires. Les journaux disponibles ne permettent pas de confirmer la graine d'initialisation de chacun des entraînements de la campagne. Pour chaque entraînement, la perte et l'exactitude sont suivies sur les ensembles d'entraînement et de validation, et le modèle correspondant à la meilleure perte de validation est retenu. Les performances sont ensuite mesurées sur l'ensemble de test, qui n'est pas utilisé pendant l'entraînement ni pendant la sélection du modèle.
 
 \section{Environnement technique}
 
 Le pipeline d'extraction et d'entraînement utilise Python, OpenCV, MediaPipe Holistic et TensorFlow/Keras. L'application de démonstration est séparée en un backend FastAPI, qui exécute le modèle GRU au format TFLite, et un frontend web. La synthèse vocale malgache est exécutée dans le navigateur avec Transformers.js et le modèle elloza/mms-tts-mlg-onnx.
 
-L'extraction des points et le développement de l'application sont réalisés sur une machine locale. L'entraînement des modèles est effectué dans Google Colab, avec un GPU NVIDIA T4 et les données de points clés stockées sur Google Drive. Colab fournit des environnements de notebooks hébergés et un accès conditionnel à des ressources de calcul, notamment des GPU \citerefs{GoogleColabFAQ}.
+L'extraction des points et le développement de l'application sont réalisés sur une machine locale. Les entraînements sont exécutés dans Google Colab, avec les données de points clés stockées sur Google Drive. Colab fournit un environnement de notebooks hébergé et peut donner accès à des accélérateurs matériels selon la disponibilité et la configuration de la session \citerefs{GoogleColabFAQ}. Les journaux d'entraînement conservés pour cette campagne ne précisent pas le modèle exact de l'accélérateur ; aucun type de GPU n'est donc attribué ici.
 
 \section{Synthèse du chapitre}
 
-La méthode suit un pipeline en six étapes : choix du vocabulaire et enregistrement, extraction des points du squelette, rééchantillonnage et normalisation, séparation des données, entraînement des deux modèles, évaluation. Le périmètre restreint (dix signes, quatre signeurs, signes isolés) permet une évaluation contrôlée, dont les limites sont assumées et discutées au chapitre 5. Une expérience complémentaire d'augmentation de données a été menée pour évaluer l'apport de cette technique sur la généralisation inter-signeurs.
+La méthode suit un pipeline allant du choix du vocabulaire et de l'enregistrement à l'extraction et au prétraitement des points, puis à la séparation des données, à l'entraînement des configurations et à leur évaluation. La campagne compare dix entraînements sur un corpus de dix signes et quatre signeurs. Une expérience d'augmentation combinant bruit gaussien et décalage temporel évalue également ces transformations ; ses limites sont discutées au chapitre 3. Le périmètre restreint et le test sur un seul signeur sont discutés au chapitre 5.

@@ -17,6 +17,14 @@
 \makenomenclature
 \makeindex
 \newcites{refs}{WEBOGRAPHIE}
+\makeatletter
+\let\citerefswithmultibib\citerefs
+\renewcommand{\citerefs}[1]{%
+  \begingroup
+  \let\@auxout\@auxoutrefs
+  \citerefswithmultibib{#1}%
+  \endgroup}
+\makeatother
 \input{couverture/1-titre}
 \input{couverture/2-encadreurs}
 \input{couverture/3-jurys}

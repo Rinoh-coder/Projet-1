@@ -1,10 +1,9 @@
-fastapi
-uvicorn
+fastapi==0.162.0
+uvicorn==0.54.0
 mediapipe==0.10.14
-ai-edge-litert
-numpy<2
-opencv-python-headless==4.11.0.86
+ai-edge-litert==2.3.0
+numpy==1.26.4
 opencv-contrib-python==4.11.0.86
 jax==0.4.38
 jaxlib==0.4.38
-python-multipart
+python-multipart==0.0.32
