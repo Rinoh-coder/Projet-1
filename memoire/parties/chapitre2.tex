@@ -43,6 +43,11 @@ Les séquences sont enregistrées à l'aide du script \texttt{src/capture.py}. L
 
 Les métadonnées du corpus recensent quatre signeurs, chacun associé à dix séquences de chacun des dix signes. Le corpus comprend ainsi quarante séquences par signe et quatre cents séquences au total. Cette diversité permet d'évaluer le modèle sur un signeur qui n'a participé ni à l'entraînement ni à la validation, sans pour autant couvrir toute la variabilité des locuteurs de la LSM.
 
+Les séances de capture se sont déroulées dans deux pièces, avec un éclairage naturel
+resté constant. Le groupe comprenait trois hommes et une femme. Le signeur réservé
+au test est un homme, filmé dans la seconde pièce. Ces conditions décrivent les
+séances réalisées ; elles ne sont pas imposées ni contrôlées par le script de capture.
+
 Le script affiche le signe à réaliser, lance le compte à rebours et sauvegarde la séquence. Il standardise ces étapes, mais ne vérifie pas à lui seul la qualité de chaque capture ni les conditions physiques de prise de vue.
 
 \section{Prétraitement et extraction des caractéristiques}
@@ -67,7 +72,34 @@ Les signeurs n'ont pas tous la même taille ni la même position par rapport à 
 
 \subsection{Gestion des données manquantes}
 
-MediaPipe peut échouer à détecter une main ou le corps sur certaines images, par exemple lorsque les mains sont masquées. Les coordonnées absentes sont alors remplacées par la dernière valeur détectée ; avant toute détection, cette valeur est initialisée à zéro. Si le corps n'est pas détecté dans plus de 20 \% des images, le script d'extraction rejette la séquence. Il ne déclenche pas automatiquement une nouvelle capture : tout remplacement doit être réalisé séparément.
+Les 400 vidéos, de 60 images chacune, ont été analysées image par image avant le rééchantillonnage, avec MediaPipe Holistic 0.10.14 en mode dynamique. Le tableau indique, pour chaque signe, le nombre et la proportion d'images sans détection du groupe de points correspondant. Le dénominateur est de 2\,400 images par signe et de 24\,000 pour le total.
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Images sans détection des landmarks par signe.}
+\label{tab:non-detection-landmarks}
+\begin{tabular}{|l|r|r|r|}
+\hline
+Signe & Pose, $n$ (\%) & Main gauche, $n$ (\%) & Main droite, $n$ (\%) \\
+\hline
+Miarahaba & 0 (0,00 \%) & 1\,212 (50,50 \%) & 302 (12,58 \%) \\
+Eny & 0 (0,00 \%) & 1\,203 (50,12 \%) & 78 (3,25 \%) \\
+Tsia & 0 (0,00 \%) & 1\,446 (60,25 \%) & 3 (0,12 \%) \\
+Miezaka & 0 (0,00 \%) & 718 (29,92 \%) & 283 (11,79 \%) \\
+Maheno & 0 (0,00 \%) & 1\,170 (48,75 \%) & 16 (0,67 \%) \\
+Marenina & 0 (0,00 \%) & 1\,273 (53,04 \%) & 38 (1,58 \%) \\
+Mora & 0 (0,00 \%) & 1\,216 (50,67 \%) & 136 (5,67 \%) \\
+Tanora & 0 (0,00 \%) & 1\,180 (49,17 \%) & 398 (16,58 \%) \\
+Solosaina & 0 (0,00 \%) & 91 (3,79 \%) & 86 (3,58 \%) \\
+Maty & 0 (0,00 \%) & 11 (0,46 \%) & 444 (18,50 \%) \\
+\hline
+Total & 0 (0,00 \%) & 9\,520 (39,67 \%) & 1\,784 (7,43 \%) \\
+\hline
+\end{tabular}
+\end{table}
+
+Chaque mesure porte sur le groupe complet, soit 33 points de pose ou 21 points par main, et non sur chaque landmark isolé. Une absence de détection ne permet pas, à elle seule, d'en déterminer la cause. Les coordonnées absentes sont remplacées par la dernière valeur détectée ; avant toute détection, cette valeur est initialisée à zéro. Si le corps n'est pas détecté dans plus de 20 \% des images, le script d'extraction rejette la séquence. Il ne déclenche pas automatiquement une nouvelle capture : tout remplacement doit être réalisé séparément.
 
 \section{Préparation des données}
 

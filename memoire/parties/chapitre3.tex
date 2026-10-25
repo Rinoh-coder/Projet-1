@@ -45,7 +45,9 @@ Pour le LSTM, Eny, Miezaka, Maheno, Mora, Tanora et Solosaina sont correctement 
 
 Pour le GRU, Miezaka, Maheno, Mora, Tanora et Solosaina sont correctement reconnus dans les dix cas de chaque classe. Miarahaba, Eny et Marenina sont reconnus dans neuf cas sur dix ; Tsia et Maty dans six et sept cas sur dix respectivement. Les erreurs les plus fréquentes sont la confusion de Tsia avec Eny et la répartition des erreurs de Maty entre Miezaka, Tanora et Solosaina.
 
-La Figure~\ref{fig:matrices-confusion} permet de comparer ces résultats classe par classe. Elle montre notamment que le GRU améliore le rappel de Miarahaba et de Tsia par rapport au LSTM, tandis que les confusions sur Maty persistent. Les matrices décrivent les erreurs observées ; elles ne permettent pas, à elles seules, d'en déterminer la cause.
+La Figure~\ref{fig:matrices-confusion} permet de comparer ces résultats classe par classe. Elle montre notamment que le GRU améliore le rappel de Miarahaba et de Tsia par rapport au LSTM, tandis que les confusions sur Maty persistent.
+
+Les confusions de Tsia avec Marenina pour le LSTM et avec Eny pour le GRU pourraient être liées à une amplitude de mouvement plus faible chez le signeur de test ou à une configuration manuelle légèrement différente. Pour Maty, les erreurs vers Miarahaba et Solosaina avec le LSTM, puis vers Miezaka, Tanora et Solosaina avec le GRU, pourraient s'expliquer par un mouvement rapide ou par des positions de main proches. Les confusions de Miarahaba avec Mora ou Solosaina pour le LSTM, et avec Solosaina pour le GRU, pourraient être liées à des variations de la trajectoire du bras entre signeurs. Ces interprétations restent des hypothèses : les matrices montrent les erreurs, mais ne permettent pas d'en établir la cause. La variabilité inter-signeurs pourrait contribuer à ces confusions ; l'ajout de points du visage constitue une piste à évaluer pour mieux distinguer ces signes.
 
 \begin{figure}[ht]
 \centering

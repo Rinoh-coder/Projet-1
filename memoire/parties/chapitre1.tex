@@ -81,7 +81,15 @@ Maquera et al. (2024), langue des signes péruvienne \cite{Maquera2024LSP} & Rec
 \end{tabular}
 \end{table}
 
-Ces travaux montrent que les représentations squelettiques et plusieurs familles de modèles sont étudiées dans des contextes linguistiques distincts. Les résultats rapportés ne peuvent pas être transposés directement d'une langue ou d'un corpus à un autre ; ils servent plutôt à identifier des choix méthodologiques pertinents.
+Ilham et al. (2024) utilisent MediaPipe Holistic et comparent LSTM et GRU pour la reconnaissance en temps réel de la langue des signes indonésienne ; ils rapportent respectivement 94 \% et 96 \% \cite{Ilham2024Indonesian}. Leur étude fournit un point de comparaison pour l'évaluation de cellules récurrentes sur des données de signes. Le présent travail reprend cette comparaison, mais porte sur la LSM et réserve un signeur entier au test.
+
+Gonfa et al. (2025) étudient une représentation squelettique de la langue des signes éthiopienne avec CNN-LSTM, LSTM, BiLSTM et GRU \cite{Gonfa2025Ethiopian}. Cette étude met en regard plusieurs architectures à partir d'une représentation squelettique. Le présent travail utilise également des points squelettiques, mais compare seulement LSTM et GRU pour la LSM.
+
+Alyami et al. (2023) étudient la reconnaissance de signes isolés en arabe à partir de points de repère avec un Transformer \cite{Alyami2023Arabic}. Cette approche illustre une autre famille de modèles pour traiter des séquences de landmarks. Le présent travail porte sur des signes de la LSM et compare des modèles récurrents.
+
+Maquera et al. (2024) relient la reconnaissance de signes péruviens par LSTM à une restitution en quechua \cite{Maquera2024LSP}. Cette étude rapproche la reconnaissance et la restitution dans une langue locale. Aucun score n'est repris dans le tableau, et le présent travail porte sur la LSM avec une sortie en malgache.
+
+Ces études portent sur des langues, des corpus et des protocoles distincts ; leurs performances ne sont donc pas directement comparables.
 
 \section{Positionnement du projet}
 
