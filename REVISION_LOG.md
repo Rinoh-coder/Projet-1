@@ -208,3 +208,65 @@ artefact TFLite distinct (90 %) est donc retirée du rapport.
   trois sections concernées ; aucune mention de Tsia issue de l'ancienne
   matrice ; compilation finale propre (57 pages, zéro erreur, zéro
   référence non définie).
+
+## Mise à jour : modèle final déployé (réentraîné avec unroll=True)
+
+Sur instruction explicite de l'utilisateur : le modèle GRU final,
+réentraîné avec `unroll=True` pour rendre la conversion TFLite possible,
+atteint 94,0 % d'exactitude sur le jeu de test et est le modèle déployé
+dans l'application ; son artefact TFLite mesure 247 Ko. La remarque
+rédactionnelle sur le 94,0 % (visant la phrase du §3.4) a été traitée en
+ajoutant la sous-section "Effet de la contrainte de déploiement" dans
+l'insertion de la 3.3.5, là où elle est justifiée par le flux du texte.
+
+### Modifications (périmètre minimal)
+
+- `parties/03-resume.tex` : le résumé français distingue désormais le
+  LSTM (82,0 %), le GRU expérimental (92,0 %) et le modèle final GRU
+  réentraîné sous contrainte de conversion (94,0 %), avec l'artefact à
+  247 Ko ; l'abstract (94,0 %, 247 KB) reste aligné.
+- `parties/chapitre3.tex` : le protocole annonce le réentraînement sous
+  contrainte ; nouvelle sous-section 3.3.5 "Effet de la contrainte de
+  déploiement" (label `sec:deploiement-tflite`) : réentraînement avec
+  `unroll=True`, conversion sans opérateur Flex, modèle final à
+  94,0 % ; la section 3.4 (choix du modèle retenu) se termine par le
+  renvoi vers cette sous-section et le score de 94,0 % ; l'analyse des
+  erreurs (3.5) rapporte 92,0 % pour le modèle de référence et
+  94,0 % pour le modèle final déployé, avec le renvoi ; la synthèse
+  (3.6) mentionne le modèle final à 94,0 % déployé et reformule
+  l'argument "mains seules" en cohérence (même score de 94,0 % dans la
+  campagne, avantage non établi comme significatif).
+- `parties/chapitre4.tex` : le paragraphe de conversion indique le
+  réentraînement avec `unroll=True`, le modèle final à 94,0 % et l'artefact
+  TFLite à 247 Ko (contre le modèle Keras de 1 677 751 octets, environ
+  1,60 Mio) ; le tableau des choix technologiques cite l'artefact à 247 Ko.
+- `parties/chapitre5.tex` : la limite sur le modèle indique 94,0 % pour le
+  modèle final déployé ; la limite méthodologique conclut que
+  l'exactitude rapportée concerne bien le modèle déployé (modèle final
+  réentraîné avec `unroll=True`, 94,0 %).
+- `parties/07-conclusion.tex` : la conclusion relate le réentraînement
+  avec `unroll=True`, le modèle final à 94,0 % et son artefact à 247 Ko.
+
+### Vérifications
+
+- Compilation avec `latexmk -pdf -interaction=nonstopmode
+  main_francais.tex` depuis `memoire/` : réussie, PDF de 57 pages,
+  aucune référence non définie, aucun label instable.
+- `git diff --check` : réussi.
+- Recherche de résidus : plus aucune occurrence de "245,5" ni de
+  "251 344" ; les mentions de 92,0 % restent uniquement pour le modèle
+  de référence initial et le GRU expérimental, jamais pour le modèle
+  déployé.
+- `figures/images du memoire/matrice_confusion_gru_final.png`
+  (43 781 octets, 913 x 790) : insérée comme nouvelle Figure 3.1 du
+  chapitre 3 (section "Analyse des erreurs en conditions d'utilisation"),
+  avec la légende demandée ; le texte de la section 3.5 est remplacé par
+  la formulation fournie (94,0 %, erreurs principalement Tsia, Maty et
+  Miarahaba, cohérence avec la littérature) ; l'analyse des essais vidéo
+  conserve le renvoi au Tableau 4.x avec l'évaluation hors ligne mise à
+  jour à 94,0 %.
+- `backend/models/model_gru.tflite` : l'artefact fourni (252 712 octets,
+  soit 247 Ko) remplace l'ancien (251 344 octets) et correspond au
+  chiffre cité dans le rapport ; committé séparément.
+- Commits atomiques d93a364 (figure), 78bd03a (artefact TFLite) et
+  3bfd296 (textes) poussés sur la branche.
