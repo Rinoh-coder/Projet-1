@@ -131,17 +131,17 @@ Une expérience a évalué si deux transformations pouvaient améliorer la gén�
 
 \subsection{Architecture LSTM}
 
-Le modèle LSTM de référence prend en entrée une séquence de trente images, chacune décrite par un vecteur de 225 valeurs. Il comporte une couche LSTM de 128 unités, suivie d'une couche de dropout à 0,4, puis d'une couche dense de dix unités avec activation softmax, qui produit une probabilité pour chaque signe.
+Le modèle expérimental LSTM prend en entrée une séquence de trente images, chacune décrite par un vecteur de 225 valeurs. Il comporte une couche LSTM de 128 unités, suivie d'une couche de dropout à 0,4, puis d'une couche dense de dix unités avec activation softmax, qui produit une probabilité pour chaque signe.
 
 L'entraînement utilise l'optimiseur Adam avec un taux d'apprentissage de 0,001, une taille de lot de 16, et une perte d'entropie croisée catégorielle. Un arrêt anticipé est appliqué sur la perte de validation, avec une patience de dix époques. Le meilleur modèle, au sens de la perte de validation, est sauvegardé.
 
 \subsection{Architecture GRU}
 
-Le modèle GRU de référence reprend la même architecture, à une différence près : la couche récurrente est une couche GRU au lieu d'une couche LSTM. Les autres paramètres sont identiques : nombre d'unités, dropout, optimiseur, taux d'apprentissage, taille de lot et arrêt anticipé. Cette identité définit la comparaison principale entre les deux cellules récurrentes.
+Le modèle expérimental GRU pose+mains reprend la même architecture, à une différence près : la couche récurrente est une couche GRU au lieu d'une couche LSTM. Les autres paramètres sont identiques : nombre d'unités, dropout, optimiseur, taux d'apprentissage, taille de lot et arrêt anticipé. Cette identité définit la comparaison expérimentale principale entre les deux cellules récurrentes.
 
 \subsection{Hyperparamètres de référence}
 
-Pour la comparaison de référence, les hyperparamètres sont identiques pour le LSTM et le GRU : dimension de l'entrée, nombre d'unités, dropout, optimiseur, taux d'apprentissage, taille de lot et patience de l'arrêt anticipé. La campagne décrite au chapitre 3 comprend également des configurations où la taille du modèle et le dropout varient ; ces configurations sont comparées comme des ensembles de paramètres complets.
+Pour la comparaison expérimentale principale, les hyperparamètres sont identiques pour le modèle expérimental LSTM et le modèle expérimental GRU pose+mains : dimension de l'entrée, nombre d'unités, dropout, optimiseur, taux d'apprentissage, taille de lot et patience de l'arrêt anticipé. La campagne décrite au chapitre 3 comprend également des configurations où la taille du modèle et le dropout varient ; ces configurations sont comparées comme des ensembles de paramètres complets.
 
 \section{Protocole d'évaluation}
 
